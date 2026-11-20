@@ -31,3 +31,19 @@
 4. Quản lý subagent: giao quá nhiều việc cho một subagent, chạy lâu, tôi phải dừng giữa chừng. Lần sau tách UI thành 2 phần nhỏ (flow/HUD và thế giới 3D).
 
 **Harness:** `AGENTS.md` cập nhật cho phạm vi mới; skill `verify-headless` (bảng tính tick) và `browser-check` mới; hook Stop `npm test`; CI.
+
+# Phase 3
+
+| Việc | Công cụ | Ghi chú |
+|---|---|---|
+| Phân tích Ticket-03, ADR, thay mô hình đèn trong `sim.js`, viết/cập nhật test, đổi client | Claude Code (parent, không subagent) | Làm tuần tự: sim -> test cũ vỡ -> viết lại có lý do -> test mới -> client -> tài liệu |
+
+**Token/chi phí ước tính:** khoảng 120-160k token cho Phase 3 ([INFERENCE]). Tiết kiệm: một lượt patch sim bằng script, chạy test sau mỗi bước, không giao việc cho subagent (bài học Phase 2).
+
+**Lỗi AI / bản thân**
+1. 7 test đỏ ngay sau khi đổi sim: đều là test mô tả luật cũ (thắng khi thắp hết, thời lượng 300, điểm/đom đóm 10, `lantern_lit` không có `relight`). Đọc từng lỗi, sửa/viết lại, không nới assert.
+2. 2 test mới của tôi sai kịch bản chứ không sai sim: kịch bản hút dầu dùng dầu ≥ 30 (Bóng Mực rời `drain` đúng luật); và đọc snapshot tại tick không có (lại lỗi `every`). Ghi vào `AGENTS.md`.
+3. Điểm yếu của ticket mà tôi phát hiện khi viết test: luật "đèn đầy dầu không được chọn" gần như không bao giờ xảy ra vì dầu hao mỗi tick; tôi ghi giả định A38 thay vì bịa hành vi.
+4. Đã thử chơi trong trình duyệt sau khi đổi client, vẫn dùng hook `window.__app.game` để tạo tình huống nên bằng chứng UI là bán tự động (đã ghi).
+
+**Harness:** AGENTS.md thêm quy tắc "luật bị thay => ADR + CHANGELOG + viết lại test"; hook Stop `npm test`; skill `verify-headless`, `browser-check`.

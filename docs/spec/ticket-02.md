@@ -1,5 +1,7 @@
 # Spec: Ticket-02 "Ba hòn đảo" (Phase 2, Contract v1.1)
 
+> **Cập nhật Phase 3:** các dòng về luật thắng thắp-hết-đèn, thời lượng 300/330/360, điểm và vùng an toàn của Ticket-02 đã bị Ticket-03 thay thế, xem [spec-03](ticket-03.md) và [CHANGELOG](../../CHANGELOG.md).
+
 Mỗi mục có tiêu chí nghiệm thu (AC) kiểm chứng được và test tương ứng (`tests/headless.test.js`, trừ khi ghi "trình duyệt"). Số chuẩn nằm ở `game.contract.json`; bản đồ ở `src/maps.js`.
 
 ## Phần 1 - số liệu chuẩn (thay mọi số tự chọn ở Phase 1)

@@ -119,3 +119,10 @@ canvas { display: block; }
 }
 
 #hud-fps { position: fixed; top: 52px; left: 16px; z-index: 50; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--gold); text-shadow: 0 1px 3px #000; pointer-events: none; }
+
+/* [T3] high-contrast palette: UI warning colour #FF5A5F -> #FFFFFF plus a warning icon */
+body.cb { --danger: #FFFFFF; }
+body.cb #hud-clock.danger::before, body.cb .cd.busy .cd-time::before, body.cb #hud-wind::before, body.cb #hud-charm::before { content: '\26A0\FE0E '; }
+body.cb #hud-flash { background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0) 40%, rgba(255, 255, 255, 0.5) 100%); }
+body.cb .cd.busy { border-color: #fff; }
+.cap-text { align-self: center; margin-left: 6px; font-size: 14px; font-weight: 700; color: var(--gold); font-variant-numeric: tabular-nums; white-space: nowrap; }

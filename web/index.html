@@ -46,7 +46,7 @@
   </div>
   <div id="hud-arrow" class="hidden"><div class="arrow-head"></div></div>
   <div id="hud-flash"></div>
-  <div id="hud-help">WASD di chuyển · Space nhảy · Shift lướt · E nạp đèn · F tỏa sáng · Nhấp vào màn hình rồi rê chuột (hoặc Q/Z) để xoay camera · Esc tạm dừng</div>
+  <div id="hud-help">WASD di chuyển · Space nhảy · Shift lướt · E nạp / châm dầu đèn · F tỏa sáng · Nhấp vào màn hình rồi rê chuột (hoặc Q/Z) để xoay camera · Esc tạm dừng</div>
 </div>
 
 <!-- Màn hình chính -->
@@ -118,6 +118,11 @@
       <label for="set-sens">Độ nhạy chuột</label>
       <input type="range" id="set-sens" min="20" max="300" step="5">
       <span id="sens-val" class="setting-val"></span>
+    </div>
+    <div class="setting-row">
+      <label for="set-cb">Bảng màu dễ phân biệt</label>
+      <input type="checkbox" id="set-cb">
+      <span class="setting-val" id="cb-val"></span>
     </div>
     <button id="btn-settings-back" class="btn big">Quay lại</button>
   </div>

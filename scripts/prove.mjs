@@ -1,11 +1,11 @@
 // Regenerates docs/proof/phase-<N>/ : npm test report, sample headless runs per night, determinism hashes, full-night timings.
-// Usage: node scripts/prove.mjs [phase]   (default 2). Proof must be regenerated at the commit that gets the tag.
+// Usage: node scripts/prove.mjs [phase]   (default 3). Proof must be regenerated at the commit that gets the tag.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import os from 'node:os';
 
-const phase = process.argv[2] ?? '2';
+const phase = process.argv[2] ?? '3';
 const dir = `docs/proof/phase-${phase}`;
 const sam = `${dir}/samples`;
 fs.mkdirSync(sam, { recursive: true });
@@ -42,14 +42,14 @@ for (const night of [1, 2, 3]) {
 fs.writeFileSync(`${dir}/determinism.txt`, det);
 fs.writeFileSync(`${dir}/perf-headless.txt`, perf);
 
-// Sample: win night 3 by lighting the last lantern from the tier-2 platform (shows scoring + events).
-fs.writeFileSync(`${sam}/win3.scenario.json`, JSON.stringify({
+// Sample: survive night 3 to dawn with 5/7 lanterns lit (ceil(0.6 x 7) = 5): shows fuel decay, scoring and dawn_survived.
+fs.writeFileSync(`${sam}/dawn3.scenario.json`, JSON.stringify({
   random_motes: false, random_shades: false, random_drifters: false, wind_enabled: false, motes: [], shades: [], drifters: [],
   player: { pos: [0, 6, 6], carried: 10, flames: 3 },
-  lanterns: ['L2', 'L3', 'L4', 'L5', 'L6', 'L7'].map((id) => ({ id, lit: true })), time_left_s: 100,
+  lanterns: ['L2', 'L3', 'L4', 'L5', 'L6'].map((id) => ({ id, lit: true })).concat([{ id: 'L1', pos: [0, 6, 6.5] }]), time_left_s: 5,
 }));
-fs.writeFileSync(`${sam}/win3.inputs.json`, JSON.stringify({ frames: [{ tick: 30, interact: true }, { tick: 31, interact: false }] }));
-const w = hn(['--seed', '1', '--night', '3', '--scenario', `${sam}/win3.scenario.json`, '--inputs', `${sam}/win3.inputs.json`, '--ticks', '600', '--out', `${sam}/win3.out.jsonl`]);
-const last = fs.readFileSync(`${sam}/win3.out.jsonl`, 'utf8').trim().split('\n').at(-1);
-summary.push(`win3 exit ${w.status} ${last}`);
+fs.writeFileSync(`${sam}/dawn3.inputs.json`, JSON.stringify({ frames: [{ tick: 30, interact: true }, { tick: 31, interact: false }] }));
+const w = hn(['--seed', '1', '--night', '3', '--scenario', `${sam}/dawn3.scenario.json`, '--inputs', `${sam}/dawn3.inputs.json`, '--ticks', '600', '--out', `${sam}/dawn3.out.jsonl`]);
+const last = fs.readFileSync(`${sam}/dawn3.out.jsonl`, 'utf8').trim().split('\n').at(-1);
+summary.push(`dawn3 exit ${w.status} ${last}`);
 console.log(summary.join('\n'));

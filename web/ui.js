@@ -1,24 +1,26 @@
 // Màn hình (menu / intro / kết quả / bình minh / tạm dừng / cài đặt) + cài đặt lưu localStorage.
 export const ONG_DANG_LINES = {
-  1: 'Đêm nay trời quang mây tía, Mây ạ. Thắp sáng năm ngọn đèn trên Đảo Bến trước khi đồng hồ cát cạn nhé!',
-  2: 'Cây cầu tre tuy mảnh mà vững, cháu cứ đi thong thả. Nhớ canh chừng Gió Lạc — nó hay đánh cắp ánh sáng đấy.',
-  3: 'Chuông đã im bao năm rồi, nhưng chỉ cần đèn tháp sáng lên là trăng lại mỉm cười. Coi chừng cơn gió lớn sắp tới nhé!',
+  1: 'Đèn rồi cũng cạn dầu, Mây ạ. Giữ cho ít nhất ba trong năm ngọn đèn trên Đảo Bến còn sáng đến bình minh. Bóng Mực sẽ lần tới những ngọn đèn yếu để hút dầu đấy!',
+  2: 'Cây cầu tre tuy mảnh mà vững, cháu cứ đi thong thả. Cần giữ sáng bốn trong sáu ngọn đèn, và canh chừng Gió Lạc, nó hay đánh cắp ánh sáng.',
+  3: 'Chuông đã im bao năm rồi. Năm trong bảy ngọn đèn phải sáng đến rạng đông. Đèn nào sắp tắt thì châm thêm đom đóm cho nó, và coi chừng cơn gió lớn nhé!',
 };
 
 export const settings = {
   volume: 0.8, // 0..1
   sensitivity: 1.0, // hệ số độ nhạy chuột
+  colorblind: false, // bảng màu dễ phân biệt
   load() {
     try {
       const s = JSON.parse(localStorage.getItem('ddl.settings') || 'null');
       if (s) {
         if (typeof s.volume === 'number') this.volume = Math.min(1, Math.max(0, s.volume));
         if (typeof s.sensitivity === 'number') this.sensitivity = Math.min(3, Math.max(0.2, s.sensitivity));
+        if (typeof s.colorblind === 'boolean') this.colorblind = s.colorblind;
       }
     } catch { /* bỏ qua */ }
   },
   save() {
-    try { localStorage.setItem('ddl.settings', JSON.stringify({ volume: this.volume, sensitivity: this.sensitivity })); } catch { /* bỏ qua */ }
+    try { localStorage.setItem('ddl.settings', JSON.stringify({ volume: this.volume, sensitivity: this.sensitivity, colorblind: this.colorblind })); } catch { /* bỏ qua */ }
   },
 };
 
@@ -44,6 +46,12 @@ export class Screens {
     $('btn-pause-menu').addEventListener('click', () => { h.audio.play('ui'); h.onMenu(); });
     $('btn-settings-back').addEventListener('click', () => { h.audio.play('ui'); h.onSettingsBack(); });
 
+    this.cbBox = $('set-cb');
+    this.cbBox.addEventListener('change', () => {
+      settings.colorblind = this.cbBox.checked;
+      settings.save();
+      h.onColorblind(settings.colorblind);
+    });
     this.volSlider = $('set-volume');
     this.sensSlider = $('set-sens');
     this.volVal = $('vol-val');
@@ -67,6 +75,7 @@ export class Screens {
     this.sensSlider.value = String(Math.round(settings.sensitivity * 100));
     this.volVal.textContent = Math.round(settings.volume * 100) + '%';
     this.sensVal.textContent = 'x' + settings.sensitivity.toFixed(2);
+    this.cbBox.checked = settings.colorblind;
   }
 
   _show(name) {
@@ -93,11 +102,14 @@ export class Screens {
     this.setPause(false);
     const won = game.state === 'won';
     document.getElementById('result-title').textContent = won ? 'Đêm đã sáng rực!' : 'Màn đêm giành lại...';
+    const n = game.lanterns.length;
+    const lit = game.lanterns.filter((l) => l.lit).length;
+    const need = Math.ceil(game.t.win_ratio * n - 1e-9);
     const reason = won
-      ? 'Tất cả đèn lồng đã được thắp sáng!'
-      : game.state === 'lost' && game.p.flames <= 0
+      ? `Bình minh đến và ${lit}/${n} ngọn đèn vẫn còn sáng. Đảo được cứu!`
+      : game.p.flames <= 0
         ? 'Mây đã hết ngọn lửa trên người...'
-        : 'Trời đã rạng đông mà đèn vẫn chưa đủ sáng.';
+        : `Trời đã rạng đông mà chỉ còn ${lit}/${n} đèn sáng (cần ${need}).`;
     document.getElementById('result-reason').textContent = reason;
     document.getElementById('result-score').textContent = `Điểm đêm ${game.night}: ${game.score}`;
     document.getElementById('result-total').textContent = `Tổng điểm tích lũy: ${total}`;

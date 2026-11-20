@@ -1,6 +1,6 @@
 # AGENTS.md: Đảo Đèn Lồng
 
-Game 3D (three.js) + deterministic headless sim. Contract: `game.contract.json` (Test Contract **v1.1**, 3 Đêm). Spec: `docs/spec/ticket-02.md`.
+Game 3D (three.js) + deterministic headless sim. Contract: `game.contract.json` (Test Contract **v1.2**, 3 Đêm, lantern fuel + win at dawn). Specs: `docs/spec/ticket-02.md`, `docs/spec/ticket-03.md`. Decisions: `docs/adr/`. Breaking changes: `CHANGELOG.md`.
 
 ## Commands
 - Install: `npm install` · Play: `npm start` (http://localhost:8081) · Test: `npm test` (~10 s)
@@ -17,6 +17,8 @@ Game 3D (three.js) + deterministic headless sim. Contract: `game.contract.json` 
 ## Rules
 - 60 ticks/s; timers are integer ticks. Only the seeded `rng` for randomness (never `Math.random` in `src/`).
 - Distances: XZ unless the spec says 3D (pulse only) or height-diff (pickup/hit <= 1.5). Radii compare with `<=`.
+- Fuel is an integer in 1/60 units (`FU`); never use float fuel. A lantern's safe zone is derived (`hasZone`: lit && fuel >= 30), not stored. Win is only decided at dawn (S11).
+- A rule replaced by a ticket => write/extend an ADR + CHANGELOG row, rewrite (never skip) the tests that asserted it, say why.
 - Angle `a` => `(cos a, sin a)` on (X, Z). Shade `pos.y` = ground + 1.
 - A rule change updates contract, test, `docs/notes/assumptions.md` (and the superseded row) in the same commit.
 - Creative extras must not change headless output (disable when headless / keep in `web/`).
@@ -25,6 +27,8 @@ Game 3D (three.js) + deterministic headless sim. Contract: `game.contract.json` 
 - Ambiguity: write the assumption (next free A-number), never invent ticket text.
 
 ## Past agent mistakes (keep out)
+- Test scenario contradicted the rule it tested (a drain test with fuel >= 30: the shade correctly left `drain`). Check the scenario against the spec numbers before blaming the sim.
+- Test asserted a snapshot at a tick that is not a multiple of `every` (see first item) twice more in Phase 3.
 - Assertion read a snapshot at tick 0 because `--snapshot-every` defaults to 10 (use `every: 1`).
 - Duplicate `tick` in an inputs frame list => exit 2; merge fields into one frame.
 - Spec-ordering slip: a lantern lit this tick makes shades inside its zone harmless (S6 before S9), so "win and die on the same tick" cannot happen.

@@ -70,7 +70,7 @@ function validateScenario(s) {
   if (s.player !== undefined) {
     if (!isObj(s.player)) bad('player must be an object');
     if (s.player.pos !== undefined && !isVec(s.player.pos, 3)) bad('player.pos must be [x,y,z]');
-    for (const k of ['carried', 'flames', 'invuln_ticks', 'dash_cd_ticks', 'pulse_cd_ticks', 'charm_ticks']) if (s.player[k] !== undefined && !Number.isInteger(s.player[k])) bad(`player.${k} must be an integer`);
+    for (const k of ['carried', 'flames', 'successful_lights', 'invuln_ticks', 'dash_cd_ticks', 'pulse_cd_ticks', 'charm_ticks']) if (s.player[k] !== undefined && !Number.isInteger(s.player[k])) bad(`player.${k} must be an integer`);
   }
   for (const k of ['random_motes', 'random_shades', 'random_drifters', 'wind_enabled']) if (s[k] !== undefined && typeof s[k] !== 'boolean') bad(`${k} must be boolean`);
   if (s.time_left_s !== undefined && !(isNum(s.time_left_s) && s.time_left_s > 0)) bad('time_left_s must be a positive number');
@@ -83,9 +83,10 @@ function validateScenario(s) {
       if (sh.id !== undefined && typeof sh.id !== 'string') bad('shade id must be a string');
     }
   }
-  const STATES = ['spawning', 'wander', 'chase', 'recoil', 'stunned'];
+  const STATES = ['spawning', 'wander', 'chase', 'recoil', 'stunned', 'drain'];
   for (const sh of s.shades || []) {
     if (sh.state !== undefined && !STATES.includes(sh.state)) bad(`shade state must be one of ${STATES.join(', ')}`);
+    if (sh.target_lantern_id !== undefined && typeof sh.target_lantern_id !== 'string') bad('target_lantern_id must be a string');
     if (sh.state_ticks_left !== undefined && !Number.isInteger(sh.state_ticks_left)) bad('state_ticks_left must be an integer');
   }
   if (s.drifters !== undefined) {
@@ -110,6 +111,8 @@ function validateScenario(s) {
       if (l.pos !== undefined && !isVec(l.pos, 3)) bad('lantern pos must be [x,y,z]');
       if (l.lit !== undefined && typeof l.lit !== 'boolean') bad('lantern lit must be boolean');
       if (l.deposited !== undefined && !Number.isInteger(l.deposited)) bad('lantern deposited must be an integer');
+      if (l.fuel !== undefined && !(isNum(l.fuel) && l.fuel >= 0)) bad('lantern fuel must be a number >= 0');
+      if (l.ever_lit !== undefined && typeof l.ever_lit !== 'boolean') bad('lantern ever_lit must be boolean');
     }
   }
   return s;

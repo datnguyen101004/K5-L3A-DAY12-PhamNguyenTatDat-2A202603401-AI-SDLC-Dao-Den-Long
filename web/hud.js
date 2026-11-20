@@ -30,12 +30,15 @@ export class HUD {
       this.flameSlots.push(d);
     }
     this.moteSlots = [];
-    for (let i = 0; i < tuning.carry_capacity; i++) {
+    for (let i = 0; i < tuning.capacity_max; i++) { // capacity grows with every successful light (10 .. 20)
       const d = document.createElement('div');
       d.className = 'mote';
       this.motesEl.appendChild(d);
       this.moteSlots.push(d);
     }
+    this.capEl = document.createElement('span');
+    this.capEl.className = 'cap-text';
+    this.motesEl.appendChild(this.capEl);
     this.cache = {};
   }
 
@@ -64,10 +67,15 @@ export class HUD {
     this.set('danger', tl <= 30, (v) => this.clockEl.classList.toggle('danger', v));
 
     const lit = game.lanterns.reduce((a, l) => a + (l.lit ? 1 : 0), 0);
-    this.set('lan', lit + '/' + game.lanterns.length, (v) => { this.lanternEl.textContent = 'Đèn ' + v; });
+    const need = Math.ceil(t.win_ratio * game.lanterns.length - 1e-9);
+    this.set('lan', lit + '/' + game.lanterns.length + '/' + need, () => { this.lanternEl.textContent = `Đèn ${lit}/${game.lanterns.length} (cần ${need})`; });
     this.set('score', game.score, (v) => { this.scoreEl.textContent = String(v); });
 
-    this.set('carried', p.carried, (v) => this.moteSlots.forEach((s, i) => s.classList.toggle('filled', i < v)));
+    const cap = game.capacity;
+    this.set('carried', p.carried + '/' + cap, () => {
+      this.moteSlots.forEach((s, i) => { s.style.display = i < cap ? '' : 'none'; s.classList.toggle('filled', i < p.carried); });
+      this.capEl.textContent = `${p.carried}/${cap}`;
+    });
 
     const dashMax = t.dash_cooldown_s * 60;
     const pulseMax = t.pulse_cooldown_s * 60;
@@ -92,17 +100,21 @@ export class HUD {
     else if (p.carried < t.pulse_cost) show('pulset', this.pulseEl, this.pulseTime, true, `${p.carried}/${t.pulse_cost} đóm`);
     else show('pulset', this.pulseEl, this.pulseTime, false, 'sẵn sàng');
 
-    // Prompt nạp đèn khi gần đèn chưa sáng
+    // Prompt khi gần đèn nhận được ánh sáng: đèn chưa sáng (nạp / thắp lại) hoặc đèn sáng chưa đầy dầu (châm dầu)
+    const fuelMax = t.fuel_max * 60;
     let best = null;
     let bd = Infinity;
     for (const l of game.lanterns) {
-      if (l.lit) continue;
+      if (l.lit && l.fuel >= fuelMax) continue;
       const d = Math.hypot(p.pos[0] - l.pos[0], p.pos[2] - l.pos[2]);
       if (d <= t.interact_radius && d < bd) { bd = d; best = l; }
     }
     if (best) {
-      this.set('prompt', best.id + ':' + best.deposited, () => {
-        this.promptEl.textContent = `E — Nạp ánh sáng (${best.deposited}/${t.lantern_cost})`;
+      const text = best.lit
+        ? `E — Châm dầu (${Math.floor(best.fuel / 60)}/${t.fuel_max})`
+        : `E — ${best.everLit ? 'Thắp lại' : 'Nạp ánh sáng'} (${best.deposited}/${best.everLit ? t.relight_cost : t.lantern_cost})`;
+      this.set('prompt', best.id + ':' + text, () => {
+        this.promptEl.textContent = text;
         this.promptEl.classList.remove('hidden');
       });
     } else if (this.cache.prompt) {
@@ -110,11 +122,11 @@ export class HUD {
       this.promptEl.classList.add('hidden');
     }
 
-    // Mũi tên chỉ đèn gần nhất chưa sáng khi nó nằm ngoài màn hình
+    // Mũi tên chỉ đèn cần chú ý gần nhất (tắt hoặc sắp cạn dầu) khi nó nằm ngoài màn hình
     let near = null;
     let nd = Infinity;
     for (const l of game.lanterns) {
-      if (l.lit) continue;
+      if (l.lit && l.fuel >= t.low_fuel_threshold * 60) continue;
       const d = Math.hypot(p.pos[0] - l.pos[0], p.pos[2] - l.pos[2]);
       if (d < nd) { nd = d; near = l; }
     }

@@ -63,6 +63,14 @@ export class World {
     this.rimGeo = this.sg(new THREE.IcosahedronGeometry(0.88, 1));
     this.eyeGeo = this.sg(new THREE.SphereGeometry(0.09, 6, 6));
     this.eyeMat = this.sm(new THREE.MeshBasicMaterial({ color: PAL.rim }));
+    this.rimColor = PAL.rim; // #7A3CFF, or #00B3FF in the high-contrast palette
+    this.beamGeo = this.sg(new THREE.CylinderGeometry(0.05, 0.05, 1, 6).rotateX(Math.PI / 2));
+    this.tearMat = this.sm(new THREE.MeshBasicMaterial({ color: 0x15121c, side: THREE.DoubleSide }));
+    this.tearGeo = this.sg(new THREE.PlaneGeometry(0.16, 0.3));
+    this.barBackMat = this.sm(new THREE.MeshBasicMaterial({ color: 0x15121c, transparent: true, opacity: 0.7, depthWrite: false }));
+    this.barFillMat = this.sm(new THREE.MeshBasicMaterial({ color: PAL.lit, transparent: true, depthWrite: false }));
+    this.barGeo = this.sg(new THREE.PlaneGeometry(1, 0.14));
+    this.dangerColor = 0xFF5A5F; // UI warning colour, white in the high-contrast palette
     this.ribbonGeo = this.sg(new THREE.PlaneGeometry(1.3, 0.45, 6, 1));
     this.charmGeo = this.sg(new THREE.BoxGeometry(0.34, 0.5, 0.07));
     this.trimGeo = this.sg(new THREE.BoxGeometry(0.44, 0.6, 0.05));
@@ -314,9 +322,29 @@ export class World {
       ring.rotation.x = -Math.PI / 2;
       ring.position.y = 0.06;
       ring.visible = false;
-      grp.add(pole, roof, cage, core, ring);
+      // fuel bar (billboard) above the roof
+      const bar = new THREE.Group();
+      bar.position.y = 4.55;
+      const back = new THREE.Mesh(this.barGeo, this.barBackMat);
+      back.scale.set(1.2, 1.25, 1);
+      const fill = new THREE.Mesh(this.barGeo, this.barFillMat.clone());
+      fill.position.z = 0.01;
+      bar.add(back, fill);
+      bar.visible = false;
+      // torn paper: dark slits on the cage so an unlit lantern is recognisable without colour
+      const tears = new THREE.Group();
+      tears.position.y = 3.35;
+      for (let i = 0; i < 4; i++) {
+        const t = new THREE.Mesh(this.tearGeo, this.tearMat);
+        const a = (i * Math.PI) / 2 + 0.4;
+        t.position.set(Math.sin(a) * 0.49, 0.02 * (i % 2 ? 1 : -1), Math.cos(a) * 0.49);
+        t.rotation.y = a;
+        t.rotation.z = 0.35 * (i % 2 ? 1 : -1);
+        tears.add(t);
+      }
+      grp.add(pole, roof, cage, core, ring, bar, tears);
       g.add(grp);
-      this.lanternViews.push({ cageMat, cage, core, ring });
+      this.lanternViews.push({ cageMat, cage, core, ring, bar, fill, tears });
     }
 
     if (this.hasWind) {
@@ -347,14 +375,17 @@ export class World {
       const grp = new THREE.Group();
       const bodyMat = new THREE.MeshStandardMaterial({ color: PAL.shade, roughness: 0.55 });
       const body = new THREE.Mesh(this.shadeGeo, bodyMat);
-      const rim = new THREE.Mesh(this.rimGeo, new THREE.MeshBasicMaterial({ color: PAL.rim, transparent: true, opacity: 0.55, side: THREE.BackSide, depthWrite: false }));
+      const rim = new THREE.Mesh(this.rimGeo, new THREE.MeshBasicMaterial({ color: this.rimColor, transparent: true, opacity: 0.55, side: THREE.BackSide, depthWrite: false }));
+      const beam = new THREE.Mesh(this.beamGeo, new THREE.MeshBasicMaterial({ color: this.rimColor, transparent: true, opacity: 0.6, depthWrite: false }));
+      beam.visible = false;
+      this.group.add(beam);
       const e1 = new THREE.Mesh(this.eyeGeo, this.eyeMat);
       e1.position.set(-0.22, 0.12, 0.62);
       const e2 = new THREE.Mesh(this.eyeGeo, this.eyeMat);
       e2.position.set(0.22, 0.12, 0.62);
       grp.add(body, rim, e1, e2);
       this.group.add(grp);
-      v = { grp, bodyMat, rim, startTicks: 0 };
+      v = { grp, bodyMat, rim, beam, startTicks: 0 };
       this.shadeViews.set(id, v);
     }
     return v;
@@ -406,13 +437,28 @@ export class World {
     for (let i = 0; i < n; i++) {
       const l = game.lanterns[i];
       const v = this.lanternViews[i];
-      if (l.lit) { lit++; litList.push([Math.hypot(p.pos[0] - l.pos[0], p.pos[2] - l.pos[2]), v, l]); }
+      const fuelMax = this.tuning.fuel_max * 60;
+      const low = l.lit && l.fuel < this.tuning.low_fuel_threshold * 60;
+      const dim = low && ((game.simTick / 30) | 0) % 2 === 1; // slow 1 Hz blink under 30 fuel
+      if (l.lit) { lit++; litList.push([Math.hypot(p.pos[0] - l.pos[0], p.pos[2] - l.pos[2]), v, l, dim]); }
       v.cageMat.color.setHex(l.lit ? PAL.lit : PAL.unlit);
       v.cageMat.emissive.setHex(l.lit ? PAL.lit : 0x000000);
-      v.cageMat.emissiveIntensity = l.lit ? 1.5 : 0;
-      v.core.visible = l.lit;
-      v.ring.visible = l.lit;
-      v.cage.scale.setScalar(l.lit ? 1.18 : 1 + 0.25 * (l.deposited / this.tuning.lantern_cost));
+      v.cageMat.emissiveIntensity = l.lit ? (dim ? 0.35 : 1.5) : 0;
+      v.core.visible = l.lit && !dim;
+      v.ring.visible = l.lit && l.fuel >= this.tuning.low_fuel_threshold * 60; // safe zone only while fuel >= 30
+      // lit: round; out: squashed by 20% with torn paper (readable without colour)
+      if (l.lit) v.cage.scale.setScalar(1.18);
+      else v.cage.scale.set(1, 0.8, 1);
+      v.tears.visible = !l.lit;
+      v.bar.visible = l.lit;
+      if (l.lit) {
+        const frac = Math.max(0, Math.min(1, l.fuel / fuelMax));
+        v.fill.scale.x = Math.max(0.001, frac);
+        v.fill.position.x = -(1 - frac) / 2;
+        v.fill.material.color.setHex(low ? this.dangerColor : PAL.lit);
+        v.fill.material.opacity = dim ? 0.35 : 1;
+        v.bar.quaternion.copy(this.camera.quaternion);
+      }
     }
     litList.sort((a, b) => a[0] - b[0]);
     for (let i = 0; i < this.lightPool.length; i++) {
@@ -420,7 +466,7 @@ export class World {
       if (i < litList.length) {
         const l = litList[i][2];
         L.position.set(l.pos[0], l.pos[1] + 3.35, l.pos[2]);
-        L.intensity = 30;
+        L.intensity = litList[i][3] ? 11 : 30; // dim while blinking (low fuel)
       } else L.intensity = 0;
     }
     this.ambient.intensity = 0.15 + 0.55 * (n ? lit / n : 0);
@@ -458,8 +504,19 @@ export class World {
         color = PAL.stunned;
         rimOp = 0.15;
       } else if (s.state === 'recoil') {
-        color = s.ticks > 45 ? PAL.rim : PAL.shade;
+        color = s.ticks > 45 ? this.rimColor : PAL.shade;
         rimOp = 0.95;
+      } else if (s.state === 'drain') {
+        scale = 1 + 0.1 * Math.sin(game.simTick * 0.4);
+        rimOp = 0.95;
+      }
+      const drainL = s.state === 'drain' ? game.lanterns.find((l) => l.id === s.target) : null;
+      v.beam.visible = !!drainL;
+      if (drainL) {
+        tmpV.set(drainL.pos[0], drainL.pos[1] + 3.35, drainL.pos[2]);
+        v.beam.position.copy(v.grp.position).lerp(tmpV, 0.5);
+        v.beam.scale.set(1, 1, v.grp.position.distanceTo(tmpV));
+        v.beam.lookAt(tmpV);
       }
       v.bodyMat.color.setHex(color);
       v.rim.material.opacity = rimOp;
@@ -467,7 +524,7 @@ export class World {
       v.grp.scale.setScalar(scale);
       v.grp.rotation.y = game.simTick * 0.02 * (s.state === 'chase' ? 2.2 : 1);
     }
-    for (const [id, v] of this.shadeViews) if (!this.seen.has(id)) { this.group.remove(v.grp); this.shadeViews.delete(id); }
+    for (const [id, v] of this.shadeViews) if (!this.seen.has(id)) { this.group.remove(v.grp); this.group.remove(v.beam); this.shadeViews.delete(id); }
 
     // Gió Lạc (drifter)
     this.seen.clear();
@@ -614,9 +671,21 @@ export class World {
     this.group.remove(sv.grp);
     this.group.remove(dv.mesh);
     this.group.remove(cv.grp);
+    this.group.remove(sv.beam);
     this.shadeViews.delete('__warm');
     this.drifterViews.delete('__warm');
     this.charmViews.delete('__warm');
+  }
+
+  /** High-contrast palette: shade rim + eyes #7A3CFF -> #00B3FF; warning colour white. */
+  setColorblind(on) {
+    this.rimColor = on ? 0x00B3FF : PAL.rim;
+    this.dangerColor = on ? 0xFFFFFF : 0xFF5A5F;
+    this.eyeMat.color.setHex(this.rimColor);
+    for (const v of this.shadeViews.values()) {
+      v.rim.material.color.setHex(this.rimColor);
+      v.beam.material.color.setHex(this.rimColor);
+    }
   }
 
   /** Render-resolution scale (adaptive quality). */

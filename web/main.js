@@ -32,6 +32,12 @@ let lastCount = -1;
 let prevWindWarning = false;
 let resultShown = false;
 
+function applyColorblind() {
+  document.body.classList.toggle('cb', settings.colorblind);
+  world.setColorblind(settings.colorblind);
+}
+applyColorblind();
+
 // Backdrop menu: dựng sẵn đêm 1 để quay camera phía sau menu.
 world.buildNight(1, MAPS[1]);
 
@@ -51,6 +57,7 @@ const screens = new Screens({
   },
   onVolume(v) { audio.setVolume(v); },
   onSensitivity() { /* áp dụng trực tiếp qua biến settings.sensitivity */ },
+  onColorblind() { applyColorblind(); },
 });
 audio.setVolume(settings.volume);
 
@@ -100,7 +107,8 @@ function handleEvents(evs) {
   for (const e of evs) {
     switch (e.name) {
       case 'mote_picked': audio.play('mote'); break;
-      case 'deposit': audio.play('deposit'); break;
+      case 'deposit': case 'refuel': audio.play('deposit'); break;
+      case 'lantern_out': audio.play('steal'); break;
       case 'lantern_lit': audio.play('lantern'); break;
       case 'pulse': audio.play('pulse'); break;
       case 'player_hit': audio.play('hit'); hud.flash(); break;

@@ -11,21 +11,17 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const T = JSON.parse(fs.readFileSync(path.join(root, 'game.contract.json'), 'utf8')).tuning;
 const idle = { move: [0, 0], cam_yaw_deg: 0, jump: false, interact: false, pulse: false, dash: false, pause: false };
 
-/** Finish a night: either win it (light the last lantern) or lose it (dawn). */
+/** Finish a night by surviving to dawn: win with ceil(0.6 x lanterns) lit, lose with none lit. */
 function finish(night, win) {
   const lanterns = MAPS[night].lanterns;
-  const first = lanterns[0];
+  const need = Math.ceil(0.6 * lanterns.length - 1e-9);
   const scenario = {
     random_motes: false, random_shades: false, random_drifters: false, wind_enabled: false, motes: [], shades: [], drifters: [],
-    player: { pos: [...first.pos], carried: 10 },
-    lanterns: lanterns.slice(1).map((l) => ({ id: l.id, lit: true })),
-    time_left_s: win ? 100 : 0.5,
+    lanterns: win ? lanterns.slice(0, need).map((l) => ({ id: l.id, lit: true })) : [],
+    time_left_s: 0.5,
   };
   const g = new Game({ seed: 1, night, tuning: T, scenario });
-  if (win) {
-    g.step({ ...idle, interact: true });
-    g.step(idle);
-  } else for (let i = 0; i < 40; i++) g.step(idle);
+  for (let i = 0; i < 40; i++) g.step(idle);
   return g;
 }
 

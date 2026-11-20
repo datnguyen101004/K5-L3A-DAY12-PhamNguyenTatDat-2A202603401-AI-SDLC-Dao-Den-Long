@@ -57,3 +57,25 @@ Các số tuning nằm trong `game.contract.json` (nguồn duy nhất).
 | A32 | `night_start` | Sự kiện tick 0 ghi ngay sau snapshot tick 0 |
 | A33 | Chọn điểm sinh | `rng` chọn đều trong các điểm hợp lệ (chỉ cần đủ điều kiện khoảng cách/chưa chiếm/không trong vùng an toàn); thứ tự đặt lần lượt |
 | A34 | Điểm Tổng nhiều Đêm | Tính ở `Campaign` (không thuộc headless): tổng điểm các Đêm thắng |
+
+---
+
+# Phase 3 (Ticket-03, Contract v1.2)
+
+Ghi lại các quyết định thiết kế ở [ADR 0001](../adr/0001-lantern-fuel-and-dawn-victory.md) và các thay đổi phá vỡ ở [CHANGELOG](../../CHANGELOG.md). Giả định mới:
+
+| # | Chỗ mơ hồ | Giả định |
+|---|---|---|
+| A35 | Độ chính xác dầu | Số nguyên theo 1/60 (100 dầu = 6000 đơn vị); hao 1 đơn vị/tick; hút 5 đơn vị/tick/Bóng Mực; xuất ra làm tròn 1 chữ số (Math.round) |
+| A36 | Đèn đặt sẵn trong scenario | `lit:true` => fuel 100 nếu không nêu, `ever_lit=true`, `deposited=max(deposited,10)`, không sự kiện, không điểm, không tính `successful_lights`; `fuel>0` mà thiếu `lit` => sáng; đèn chưa sáng luôn có fuel 0 |
+| A37 | Khi vừa thắp | fuel = 100 ở bước 5; hao bắt đầu tick sau, nên snapshot ngay tick thắp ghi 100.0. `deposited` giữ ở mức chi phí (10 hoặc 5) khi đèn sáng, về 0 khi tắt |
+| A38 | Đèn "đầy dầu không được chọn" | Hao dầu chạy mỗi tick nên một đèn chỉ đầy tại đúng tick vừa châm; vì vậy quy tắc chỉ có tác dụng trong tick đó. Đèn sáng có fuel < max (kể cả 99.98) vẫn chọn được và dùng 1 đom đóm |
+| A39 | Di chuyển wander | Có đèn mục tiêu (đèn sáng fuel < 30 gần nhất, rồi đèn tắt gần nhất): đi thẳng tới với tốc độ 4 m/s (dùng lại đường đi BFS khi bị chặn); không có mục tiêu: lượn ngẫu nhiên 2 m/s. Bóng Mực tới ≤ 2 m đèn tắt thì đứng chờ, không hút. Mục tiêu tính lại mỗi tick khi ở trạng thái wander; `target_lantern_id` trong scenario chỉ là giá trị khởi tạo |
+| A40 | Thời điểm hút | Bóng Mực vào `drain` ở bước 8 của tick t; dầu bị hút từ bước 2 của tick t+1. `fuel_drain` được ghi khi bộ đếm hút của chính con đó chia hết cho 60 (tick thứ 60, 120, ... kể từ lúc bắt đầu), kèm fuel sau khi hao + hút trong tick đó |
+| A41 | Thoát khỏi drain | Thứ tự kiểm tra: đèn tắt / fuel ≥ 30 / cách đèn > 2 m => wander; rồi Mây cách Bóng Mực ≤ 6 m (XZ) => chase; nếu không thì đứng yên. Tỏa Sáng (bước 7) chạy trước nên vẫn tính +15 nếu Mây vừa vào 6 m ở cùng tick |
+| A42 | Vùng an toàn | `lit && fuel ≥ 30`, đánh giá sau khi châm dầu (bước 6). Khi fuel tụt dưới 30 vùng biến mất ngay và việc đẩy ra dừng lại |
+| A43 | Ngưỡng thắng | `ceil(0.6 × số đèn thực có)` (kể cả đèn thêm từ scenario), tính sau mọi cập nhật của tick cuối |
+| A44 | Điểm bình minh | `50 + floor(fuel)` mỗi đèn đang sáng ở tick cuối (đã trừ hao/hút của tick đó) + 50 mỗi Ngọn Lửa |
+| A45 | Sức chứa | `successful_lights` tăng ở mỗi `lantern_lit` (kể cả thắp lại); mỗi Đêm là một `Game` mới nên tự về 0 |
+| A46 | Điểm cho Tỏa Sáng lên Bóng Mực đang drain | 15 tổng (5 + 10): khóa `score.per_stun_drain = 15` |
+| A47 | Chế độ mù màu | Chỉ ở client (không đổi headless); lưu trong localStorage cùng âm lượng/độ nhạy |
