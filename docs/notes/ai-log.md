@@ -58,3 +58,18 @@
 Lỗi của AI ở đoạn này: lần sửa camera đầu tiên chỉ đo FPS và độ trễ khung hình (đều ổn) nên kết luận sai rằng "đã hết lag"; nguyên nhân thật (mất pointer-lock) chỉ lộ ra khi đo góc camera theo từng tổ hợp phím. Bài học: đo đúng đại lượng người dùng phàn nàn (góc camera), không phải đại lượng tiện đo (FPS).
 
 **Token ước tính thêm:** khoảng 80-120k ([INFERENCE]).
+
+# Phase 4
+
+| Việc | Ghi chú |
+|---|---|
+| Contract 1.3, soak, bảng xếp hạng (server + UI), benchmark (Electron), tiếp cận, đóng gói, retro | Claude Code (parent, không subagent), làm theo danh sách todo: headless trước (chấm tự động), UI sau |
+
+**Token ước tính:** 200-250k ([INFERENCE]). Tiết kiệm: một module cho mỗi phần (`src/bench.js`, `src/leaderboard.js`, `web/a11y.js`) rồi chỉ vá chỗ nối trong `main.js`; đo trước khi tối ưu (sim chỉ tốn 0.22 ms/tick nên không đụng sim).
+
+**Lỗi AI / bản thân**
+1. Soak RSS 1.18× sát ngưỡng: kiểm tra heap sau GC (phẳng 4.9 MB qua 90 Đêm) để chắc không rò rỉ trước khi chọn `--lite-mode`; ghi cả heap vào `soak.json`.
+2. Bench lúc đầu p1 16.7: tưởng do sim, đo thì sim chỉ 0.22 ms; nguyên nhân là ~1000 draw call và vẽ ở 1600×900. Sửa bằng instancing và vẽ đúng 1280×720.
+3. Một lần bench 64 fps vì tab kiểm thử chạy game song song; phát hiện khi so với lần chạy sau khi đóng tab. Ghi vào skill `browser-check` và `AGENTS.md`.
+4. Dòng gợi ý phím 18 px đè thanh đom đóm, phụ đề 16 px: phát hiện bằng quét cỡ chữ tự động + ảnh chụp; đặt cỡ chữ gốc 18 px.
+5. Lần đầu `load_ms` 19.7 s do khởi động lạnh của Electron trên Windows, không phải do game (đo từng mốc: trang tải xong ở 157 ms, khung hình đầu 457 ms).

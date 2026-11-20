@@ -1,0 +1,434 @@
+
+> dao-den-long@1.0.0-phase1 test
+> node --test tests/*.test.js
+
+TAP version 13
+# Subtest: frame statistics follow the ticket formulas
+ok 1 - frame statistics follow the ticket formulas
+  ---
+  duration_ms: 2.6781
+  type: 'test'
+  ...
+# Subtest: scene: 200 wandering shades and 100 motes on the island, L1-L3 lit at 100, seeded
+ok 2 - scene: 200 wandering shades and 100 motes on the island, L1-L3 lit at 100, seeded
+  ---
+  duration_ms: 6.0686
+  type: 'test'
+  ...
+# Subtest: bench mode: shades keep moving; no spawns, damage, pickup, fuel loss or end of night
+ok 3 - bench mode: shades keep moving; no spawns, damage, pickup, fuel loss or end of night
+  ---
+  duration_ms: 731.7808
+  type: 'test'
+  ...
+# Subtest: camera orbit: starts at (30, 15, 0), radius 30, height 15, one turn per 15 s
+ok 4 - camera orbit: starts at (30, 15, 0), radius 30, height 15, one turn per 15 s
+  ---
+  duration_ms: 0.2822
+  type: 'test'
+  ...
+# Subtest: campaign: win -> next night, lose -> retry same night, total = sum of won nights, night 3 -> dawn
+ok 5 - campaign: win -> next night, lose -> retry same night, total = sum of won nights, night 3 -> dawn
+  ---
+  duration_ms: 7.8328
+  type: 'test'
+  ...
+# Subtest: campaign: refuses an unfinished night; flames refill each night
+ok 6 - campaign: refuses an unfinished night; flames refill each night
+  ---
+  duration_ms: 1.0799
+  type: 'test'
+  ...
+# Subtest: contract v1.3 carries the standard numbers and the bench/soak commands
+ok 7 - contract v1.3 carries the standard numbers and the bench/soak commands
+  ---
+  duration_ms: 1.8475
+  type: 'test'
+  ...
+# Subtest: maps: lantern counts, durations, start positions, --night 1|2|3
+ok 8 - maps: lantern counts, durations, start positions, --night 1|2|3
+  ---
+  duration_ms: 415.9571
+  type: 'test'
+  ...
+# Subtest: snapshot v1.1 shape
+ok 9 - snapshot v1.1 shape
+  ---
+  duration_ms: 105.5061
+  type: 'test'
+  ...
+# Subtest: tick model: snapshot 0 first, N steps, speed 6, night_start event
+ok 10 - tick model: snapshot 0 first, N steps, speed 6, night_start event
+  ---
+  duration_ms: 116.2487
+  type: 'test'
+  ...
+# Subtest: camera yaw rotates move; diagonal normalised
+ok 11 - camera yaw rotates move; diagonal normalised
+  ---
+  duration_ms: 164.6545
+  type: 'test'
+  ...
+# Subtest: jump: 7 m/s, gravity 20, only from the ground
+ok 12 - jump: 7 m/s, gravity 20, only from the ground
+  ---
+  duration_ms: 93.06
+  type: 'test'
+  ...
+# Subtest: dash: 14 m/s for 12 ticks, cooldown 90 ticks from start, ignored while dashing, idle dashes along facing
+ok 13 - dash: 14 m/s for 12 ticks, cooldown 90 ticks from start, ignored while dashing, idle dashes along facing
+  ---
+  duration_ms: 192.52
+  type: 'test'
+  ...
+# Subtest: dash keeps altitude in the air and is not invulnerable
+ok 14 - dash keeps altitude in the air and is not invulnerable
+  ---
+  duration_ms: 98.8486
+  type: 'test'
+  ...
+# Subtest: pickup: XZ <= 1.0, height diff <= 1.5, capacity 10
+ok 15 - pickup: XZ <= 1.0, height diff <= 1.5, capacity 10
+  ---
+  duration_ms: 95.5369
+  type: 'test'
+  ...
+# Subtest: dropped mote TTL: gone exactly when ttl hits 0
+ok 16 - dropped mote TTL: gone exactly when ttl hits 0
+  ---
+  duration_ms: 82.8991
+  type: 'test'
+  ...
+# Subtest: deposit: nearest unlit lantern, ties to smaller id, remembers progress, scores 5 per mote deposited
+ok 17 - deposit: nearest unlit lantern, ties to smaller id, remembers progress, scores 5 per mote deposited
+  ---
+  duration_ms: 256.5788
+  type: 'test'
+  ...
+# Subtest: [Ticket-03] no early win: lighting every lantern does not end the night
+ok 18 - [Ticket-03] no early win: lighting every lantern does not end the night
+  ---
+  duration_ms: 93.0258
+  type: 'test'
+  ...
+# Subtest: [Ticket-03] win at dawn needs ceil(0.6 x lanterns) lit; bonus = 50 + floor(fuel) per lit lantern + 50 per flame, no time bonus
+ok 19 - [Ticket-03] win at dawn needs ceil(0.6 x lanterns) lit; bonus = 50 + floor(fuel) per lit lantern + 50 per flame, no time bonus
+  ---
+  duration_ms: 723.4976
+  type: 'test'
+  ...
+# Subtest: [Ticket-03] last-tick rules: no_flames beats dawn; a lantern that runs dry on the dawn tick no longer counts
+ok 20 - [Ticket-03] last-tick rules: no_flames beats dawn; a lantern that runs dry on the dawn tick no longer counts
+  ---
+  duration_ms: 163.8492
+  type: 'test'
+  ...
+# Subtest: loss: dawn (too few lanterns); no_flames when the last flame goes; score kept, no bonus
+ok 21 - loss: dawn (too few lanterns); no_flames when the last flame goes; score kept, no bonus
+  ---
+  duration_ms: 144.6821
+  type: 'test'
+  ...
+# Subtest: a shade inside the zone of a lantern lit this tick cannot hurt the player
+ok 22 - a shade inside the zone of a lantern lit this tick cannot hurt the player
+  ---
+  duration_ms: 66.0313
+  type: 'test'
+  ...
+# Subtest: shade AI: detects at 12 m, chases at 4 m/s, gives up beyond 18 m
+ok 23 - shade AI: detects at 12 m, chases at 4 m/s, gives up beyond 18 m
+  ---
+  duration_ms: 207.0244
+  type: 'test'
+  ...
+# Subtest: shade hit: -1 flame, drop floor(carried/2) on a 1.5-2.5 ring, invuln 90, recoil 2 m / 60 ticks, one hit per tick
+ok 24 - shade hit: -1 flame, drop floor(carried/2) on a 1.5-2.5 ring, invuln 90, recoil 2 m / 60 ticks, one hit per tick
+  ---
+  duration_ms: 82.5379
+  type: 'test'
+  ...
+# Subtest: invulnerable player: shade contact does nothing (no recoil); height diff > 1.5 does not hit
+ok 25 - invulnerable player: shade contact does nothing (no recoil); height diff > 1.5 does not hit
+  ---
+  duration_ms: 147.0778
+  type: 'test'
+  ...
+# Subtest: spawn schedule night 1: 2 shades at tick 300 (>=15 m away, S1,S2), then 1 every 480; spawning -> wander
+ok 26 - spawn schedule night 1: 2 shades at tick 300 (>=15 m away, S1,S2), then 1 every 480; spawning -> wander
+  ---
+  duration_ms: 167.5958
+  type: 'test'
+  ...
+# Subtest: spawn schedule: motes 20 on distinct points, +1 every 240 ticks up to 24 points, then skip
+ok 27 - spawn schedule: motes 20 on distinct points, +1 every 240 ticks up to 24 points, then skip
+  ---
+  duration_ms: 136.0968
+  type: 'test'
+  ...
+# Subtest: pulse: costs 3, centre at feet+0.8 (3D radius 5), stun 120, push 4 m in 15 ticks, +5 each, cooldown 3 s
+ok 28 - pulse: costs 3, centre at feet+0.8 (3D radius 5), stun 120, push 4 m in 15 ticks, +5 each, cooldown 3 s
+  ---
+  duration_ms: 102.6431
+  type: 'test'
+  ...
+# Subtest: pulse refuses with < 3 motes; restuns (and rescores) an already stunned shade; stun lasts exactly 120 ticks
+ok 29 - pulse refuses with < 3 motes; restuns (and rescores) an already stunned shade; stun lasts exactly 120 ticks
+  ---
+  duration_ms: 146.6898
+  type: 'test'
+  ...
+# Subtest: safe zone: shades never enter 6 m of a lit lantern
+ok 30 - safe zone: shades never enter 6 m of a lit lantern
+  ---
+  duration_ms: 93.0132
+  type: 'test'
+  ...
+# Subtest: lighting a lantern expels shades inside within 30 ticks, harmlessly
+ok 31 - lighting a lantern expels shades inside within 30 ticks, harmlessly
+  ---
+  duration_ms: 93.6762
+  type: 'test'
+  ...
+# Subtest: fall: -1 flame, lose motes, ignores invuln, 60 tick wait, respawn at start with invuln 90
+ok 32 - fall: -1 flame, lose motes, ignores invuln, 60 tick wait, respawn at start with invuln 90
+  ---
+  duration_ms: 83.9494
+  type: 'test'
+  ...
+# Subtest: fall with the last flame: lost no_flames at once, no respawn
+ok 33 - fall with the last flame: lost no_flames at once, no respawn
+  ---
+  duration_ms: 65.5462
+  type: 'test'
+  ...
+# Subtest: night 2: bamboo bridge connects islands; off the bridge you fall; pads launch to the far island
+ok 34 - night 2: bamboo bridge connects islands; off the bridge you fall; pads launch to the far island
+  ---
+  duration_ms: 327.7019
+  type: 'test'
+  ...
+# Subtest: charm: speed 7.2 and dash without cooldown while active (600 ticks)
+ok 35 - charm: speed 7.2 and dash without cooldown while active (600 ticks)
+  ---
+  duration_ms: 81.8331
+  type: 'test'
+  ...
+# Subtest: charm respawns 2700 ticks after pickup and can be picked again
+ok 36 - charm respawns 2700 ticks after pickup and can be picked again
+  ---
+  duration_ms: 127.9698
+  type: 'test'
+  ...
+# Subtest: without the charm the second dash within 1.5 s is refused
+ok 37 - without the charm the second dash within 1.5 s is refused
+  ---
+  duration_ms: 72.4809
+  type: 'test'
+  ...
+# Subtest: drifter: idle -> chase when carrying >= 5 within 15 m; steals min(3, carried) once, ignoring invuln; flees 240 ticks then vanishes
+ok 38 - drifter: idle -> chase when carrying >= 5 within 15 m; steals min(3, carried) once, ignoring invuln; flees 240 ticks then vanishes
+  ---
+  duration_ms: 224.8379
+  type: 'test'
+  ...
+# Subtest: pulse: chase drifter flees without stealing; fleeing drifter drops its loot (dropped motes) and vanishes after 120 ticks
+ok 39 - pulse: chase drifter flees without stealing; fleeing drifter drops its loot (dropped motes) and vanishes after 120 ticks
+  ---
+  duration_ms: 183.4677
+  type: 'test'
+  ...
+# Subtest: drifter schedule: ticks 1200, 2400 (max 2, ids D1, D2), none on night 1
+ok 40 - drifter schedule: ticks 1200, 2400 (max 2, ids D1, D2), none on night 1
+  ---
+  duration_ms: 305.1465
+  type: 'test'
+  ...
+# Subtest: night 3: cliffs block, ramps climb, pad reaches tier 2
+ok 41 - night 3: cliffs block, ramps climb, pad reaches tier 2
+  ---
+  duration_ms: 447.4601
+  type: 'test'
+  ...
+# Subtest: night 3 wind: gusts every 30 s for 5 s at 2 m/s in a random direction; disabled by wind_enabled=false
+ok 42 - night 3 wind: gusts every 30 s for 5 s at 2 m/s in a random direction; disabled by wind_enabled=false
+  ---
+  duration_ms: 203.1411
+  type: 'test'
+  ...
+# Subtest: wind warning is raised 2 s before the first gust
+ok 43 - wind warning is raised 2 s before the first gust
+  ---
+  duration_ms: 8.8358
+  type: 'test'
+  ...
+# Subtest: pause freezes simulation; paused/resumed events; snapshot state "paused"
+ok 44 - pause freezes simulation; paused/resumed events; snapshot state "paused"
+  ---
+  duration_ms: 100.5696
+  type: 'test'
+  ...
+# Subtest: validation: bad inputs/scenario exit 2 with a message; bad CLI exits non-zero
+ok 45 - validation: bad inputs/scenario exit 2 with a message; bad CLI exits non-zero
+  ---
+  duration_ms: 1146.5568
+  type: 'test'
+  ...
+# Subtest: stops at game end before --ticks and exits 0
+ok 46 - stops at game end before --ticks and exits 0
+  ---
+  duration_ms: 75.9999
+  type: 'test'
+  ...
+# Subtest: determinism: every night, random everything, identical bytes across runs; different seed differs
+ok 47 - determinism: every night, random everything, identical bytes across runs; different seed differs
+  ---
+  duration_ms: 1717.2827
+  type: 'test'
+  ...
+# Subtest: performance: a full night (21600 ticks) runs headless in <= 30 s
+ok 48 - performance: a full night (21600 ticks) runs headless in <= 30 s
+  ---
+  duration_ms: 3792.7882
+  type: 'test'
+  ...
+# Subtest: smarter shades: path around the gap to the bridge (night 2) and up a ramp to tier 1 (night 3)
+ok 49 - smarter shades: path around the gap to the bridge (night 2) and up a ramp to tier 1 (night 3)
+  ---
+  duration_ms: 348.1181
+  type: 'test'
+  ...
+# Subtest: [T3] fuel: 100 when lit, -1/s in exact 1/60 units, snapshot has fuel/ever_lit/relit_count; unlit lantern has fuel 0
+ok 50 - [T3] fuel: 100 when lit, -1/s in exact 1/60 units, snapshot has fuel/ever_lit/relit_count; unlit lantern has fuel 0
+  ---
+  duration_ms: 92.0394
+  type: 'test'
+  ...
+# Subtest: [T3] refuel: used = min(carried, ceil((100 - fuel)/10)), fuel += 10 each, +5 per mote, no event when nothing to add
+ok 51 - [T3] refuel: used = min(carried, ceil((100 - fuel)/10)), fuel += 10 each, +5 per mote, no event when nothing to add
+  ---
+  duration_ms: 266.3478
+  type: 'test'
+  ...
+# Subtest: [T3] interaction picks the nearest receiving lantern (unlit or not full), ties to the smaller id
+ok 52 - [T3] interaction picks the nearest receiving lantern (unlit or not full), ties to the smaller id
+  ---
+  duration_ms: 140.2315
+  type: 'test'
+  ...
+# Subtest: [T3] a lantern whose fuel reaches 0 goes out right after the counters: lantern_out, deposited 0, ever_lit stays true
+ok 53 - [T3] a lantern whose fuel reaches 0 goes out right after the counters: lantern_out, deposited 0, ever_lit stays true
+  ---
+  duration_ms: 78.2309
+  type: 'test'
+  ...
+# Subtest: [T3] relight costs 5 (+40 points, relight:true, relit_count+1), first light costs 10 (+100)
+ok 54 - [T3] relight costs 5 (+40 points, relight:true, relit_count+1), first light costs 10 (+100)
+  ---
+  duration_ms: 231.6045
+  type: 'test'
+  ...
+# Subtest: [T3] capacity = min(20, 10 + 2 x successful_lights); scenario lit lanterns do not count; real lights do; pickup obeys it
+ok 55 - [T3] capacity = min(20, 10 + 2 x successful_lights); scenario lit lanterns do not count; real lights do; pickup obeys it
+  ---
+  duration_ms: 554.8966
+  type: 'test'
+  ...
+# Subtest: [T3] a lantern below 30 fuel has no safe zone; exactly 30 still has one
+ok 56 - [T3] a lantern below 30 fuel has no safe zone; exactly 30 still has one
+  ---
+  duration_ms: 145.0561
+  type: 'test'
+  ...
+# Subtest: [T3] wandering shades go for the nearest lit lantern with fuel < 30 (ties: smaller id), else the nearest unlit lantern
+ok 57 - [T3] wandering shades go for the nearest lit lantern with fuel < 30 (ties: smaller id), else the nearest unlit lantern
+  ---
+  duration_ms: 346.7869
+  type: 'test'
+  ...
+# Subtest: [T3] drain: within 2 m of a weak lantern a shade stops and drains 5/s (stacking with decay), fuel_drain every 60 ticks, lantern goes out, shade resumes wandering
+ok 58 - [T3] drain: within 2 m of a weak lantern a shade stops and drains 5/s (stacking with decay), fuel_drain every 60 ticks, lantern goes out, shade resumes wandering
+  ---
+  duration_ms: 84.3959
+  type: 'test'
+  ...
+# Subtest: [T3] drain stacks across shades (1 + 5 + 5 per second)
+ok 59 - [T3] drain stacks across shades (1 + 5 + 5 per second)
+  ---
+  duration_ms: 87.2929
+  type: 'test'
+  ...
+# Subtest: [T3] drain exits: Mây within 6 m => chase; refuelled to >= 30 => wander (and pushed out, harmless); lantern out => wander; > 2 m away => wander
+ok 60 - [T3] drain exits: Mây within 6 m => chase; refuelled to >= 30 => wander (and pushed out, harmless); lantern out => wander; > 2 m away => wander
+  ---
+  duration_ms: 348.125
+  type: 'test'
+  ...
+# Subtest: [T3] pulse on a draining shade scores 15 in total (5 otherwise); stunned shade then returns to wander
+ok 61 - [T3] pulse on a draining shade scores 15 in total (5 otherwise); stunned shade then returns to wander
+  ---
+  duration_ms: 166.5988
+  type: 'test'
+  ...
+# Subtest: [T3] ambient scoring: lit lantern at dawn = 50 + floor(fuel); relight/first light/refuel points add up
+ok 62 - [T3] ambient scoring: lit lantern at dawn = 50 + floor(fuel); relight/first light/refuel points add up
+  ---
+  duration_ms: 71.6001
+  type: 'test'
+  ...
+# Subtest: [T3] validation of the new scenario fields; draining shades are accepted
+ok 63 - [T3] validation of the new scenario fields; draining shades are accepted
+  ---
+  duration_ms: 341.5381
+  type: 'test'
+  ...
+# Subtest: names: 3-12 of [A-Za-z0-9_], Vietnamese letters allowed, no spaces or symbols
+ok 64 - names: 3-12 of [A-Za-z0-9_], Vietnamese letters allowed, no spaces or symbols
+  ---
+  duration_ms: 3.4932
+  type: 'test'
+  ...
+# Subtest: achieved_at is ISO 8601 with an offset
+ok 65 - achieved_at is ISO 8601 with an offset
+  ---
+  duration_ms: 2.3033
+  type: 'test'
+  ...
+# Subtest: ranking: score desc, ties: earlier first, top 10 only, position reported
+ok 66 - ranking: score desc, ties: earlier first, top 10 only, position reported
+  ---
+  duration_ms: 2.5728
+  type: 'test'
+  ...
+# Subtest: entries are validated (nights_won 0-3, integer score, timezone required)
+ok 67 - entries are validated (nights_won 0-3, integer score, timezone required)
+  ---
+  duration_ms: 0.6499
+  type: 'test'
+  ...
+# Subtest: server: POST persists to disk, survives a restart, export writes {entries} in order
+ok 68 - server: POST persists to disk, survives a restart, export writes {entries} in order
+  ---
+  duration_ms: 492.1447
+  type: 'test'
+  ...
+# Subtest: soak: 10 nights in one process, no crash, results per night, RSS within 1.2x, deterministic results
+ok 69 - soak: 10 nights in one process, no crash, results per night, RSS within 1.2x, deterministic results
+  ---
+  duration_ms: 2596.5681
+  type: 'test'
+  ...
+# Subtest: soak: bad arguments exit non-zero
+ok 70 - soak: bad arguments exit non-zero
+  ---
+  duration_ms: 65.7573
+  type: 'test'
+  ...
+1..70
+# tests 70
+# suites 0
+# pass 70
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 16443.2515

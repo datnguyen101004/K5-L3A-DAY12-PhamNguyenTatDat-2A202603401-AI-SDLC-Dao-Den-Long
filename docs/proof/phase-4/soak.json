@@ -1,0 +1,22 @@
+{
+  "nights": 10,
+  "crashes": 0,
+  "results": [
+    "lost",
+    "lost",
+    "lost",
+    "lost",
+    "lost",
+    "lost",
+    "lost",
+    "lost",
+    "lost",
+    "lost"
+  ],
+  "mem_start_mb": 38.4,
+  "mem_end_mb": 40.2,
+  "heap_used_start_mb": 4.1,
+  "heap_used_end_mb": 4.2,
+  "duration_s": 1.1,
+  "gc_exposed": true
+}

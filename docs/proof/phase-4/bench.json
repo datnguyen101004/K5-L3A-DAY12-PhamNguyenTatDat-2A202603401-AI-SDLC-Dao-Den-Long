@@ -1,0 +1,14 @@
+{
+  "contract_version": "1.3",
+  "avg_fps": 166.2,
+  "p1_low_fps": 67.3,
+  "frame_ms_p95": 9,
+  "frames": 4986,
+  "load_ms": 592,
+  "peak_mem_mb": 644,
+  "vsync_off": true,
+  "renderer": "three.js r170 WebGL2 + bloom in Electron 45.4.1 (Chromium 156.0.8078.100); GPU: ANGLE (Intel, Intel(R) Iris(R) Xe Graphics (0x000046A6) Direct3D11 vs_5_0 ps_5_0, D3D11); pixel ratio 1",
+  "os": "Windows_NT 10.0.26200 x64, 12th Gen Intel(R) Core(TM) i5-12500H, 16 GB RAM",
+  "seed": 42,
+  "duration_s": 30
+}

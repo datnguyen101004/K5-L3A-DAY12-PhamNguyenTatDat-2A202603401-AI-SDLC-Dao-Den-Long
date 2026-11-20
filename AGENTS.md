@@ -1,16 +1,19 @@
 # AGENTS.md: Đảo Đèn Lồng
 
-Game 3D (three.js) + deterministic headless sim. Contract: `game.contract.json` (Test Contract **v1.2**, 3 Đêm, lantern fuel + win at dawn). Specs: `docs/spec/ticket-02.md`, `docs/spec/ticket-03.md`. Decisions: `docs/adr/`. Breaking changes: `CHANGELOG.md`.
+Game 3D (three.js) + deterministic headless sim. Contract: `game.contract.json` (Test Contract **v1.3**: 3 Đêm, lantern fuel + win at dawn, bench + soak). Specs: `docs/spec/ticket-02.md`, `docs/spec/ticket-03.md`. Decisions: `docs/adr/`. Breaking changes: `CHANGELOG.md`.
 
 ## Commands
 - Install: `npm install` · Play: `npm start` (http://localhost:8081) · Test: `npm test` (~10 s)
 - Headless: `node src/headless.js --seed 1 --night 1|2|3 --ticks 600 --out out.jsonl [--scenario f] [--inputs f] [--snapshot-every N]`
 - Proof: `node scripts/prove.mjs <phase>` (writes `docs/proof/phase-<phase>/`)
+- Bench: `node scripts/bench.mjs --seed 42 --duration 30 --out bench.json` (Electron window; close every other browser tab first, they share the GPU) · Soak: `node --expose-gc --lite-mode src/soak.js --seed 7 --nights 10 --out soak.json`
+- Release bundle: `node scripts/package.mjs` (writes `release/`) · Leaderboard export: `node server.js --export-leaderboard out.json`
 
 ## Layout
 - `src/sim.js`: ALL rules. Pure (no DOM/Node). Method per tick stage S1..S11 in the order mandated by the ticket; do not reorder.
 - `src/maps.js`: standard maps + terrain (`topsAt`). `src/campaign.js`: night progression. `src/headless.js`: CLI + validation (bad file => exit 2).
-- `web/`: rendering, input, UI, audio only. Never put rules here; read state from `Game`.
+- `src/bench.js`: bench scene + frame stats. `src/leaderboard.js`: leaderboard rules (server + browser fallback). `server.js`: static files + `/api/leaderboard` (disk store).
+- `web/`: rendering, input, UI, audio only. Shades/motes are InstancedMesh: never add per-entity meshes for crowds. Never put rules here; read state from `Game`.
 - `game.contract.json`: single source of truth for numbers. Never hardcode a tuning number in sim.
 - `tests/`: scenario tests through the real CLI (`run({night, scenario, frames, ticks, every})`).
 
@@ -24,6 +27,8 @@ Game 3D (three.js) + deterministic headless sim. Contract: `game.contract.json` 
 - Creative extras must not change headless output (disable when headless / keep in `web/`).
 - Not done until `npm test` is green AND you read which tests ran. Never edit `docs/proof/*` by hand; regenerate it.
 - Tests: assert on the specified number (from the ticket), not on what the code happens to output. Use `every: 1` when asserting a specific tick; scenario must set `random_*: false` unless testing spawns.
+- UI text >= 18 px at 1280x720 (`font-size: calc(Npx * var(--fs))`, N >= 18). Key hints come from `settings.keys` (`data-key`), never hardcode a key name.
+- `Game({bench:true})` is for the benchmark only; never use it in headless or tests of rules.
 - Ambiguity: write the assumption (next free A-number), never invent ticket text.
 
 ## Past agent mistakes (keep out)

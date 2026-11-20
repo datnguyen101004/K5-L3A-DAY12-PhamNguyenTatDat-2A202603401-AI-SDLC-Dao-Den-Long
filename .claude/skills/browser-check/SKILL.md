@@ -7,3 +7,5 @@ description: Use after changing anything in web/ to verify the real UI (HUD, men
 3. Check: console has no errors; HUD elements present (flames, mm:ss clock, lanterns k/n + score, 10-slot mote bar, dash/pulse cooldowns); pause menu freezes the clock; settings survive a reload.
 4. Read `window.__perf.fps` for 5+ s per night at 1280x720; record numbers (and that headless Chromium may use software GL).
 5. Save screenshots to `docs/proof/phase-<N>/ui-*.png`; state what was NOT checked (e.g. audio is not audible to the agent).
+6. Accessibility audit at 1280x720: walk all visible text nodes, smallest computed font-size must be 18 px (menu, settings, intro, HUD, pause). Rebind a key to a used one: a conflict message must appear.
+7. Close every browser tab before running the benchmark; a live game tab halves the measured fps.
