@@ -42,7 +42,7 @@ const screens = new Screens({
   onNext() { showIntro(campaign.night); },
   onRetry() { if (game) startNight(game.night); },
   onMenu() { game = null; screen = 'menu'; screens.showMenu(); },
-  onResume() { resumeQueued = true; },
+  onResume() { resumeQueued = true; try { world.renderer.domElement.requestPointerLock(); } catch { /* ignore */ } },
   onRestart() { if (game) startNight(game.night); },
   onSettings(from) { screens.openSettings(from); },
   onSettingsBack() {
@@ -134,10 +134,25 @@ addEventListener('keyup', (e) => keys.delete(e.code));
 addEventListener('pointerdown', () => audio.ensure(), { capture: true });
 
 const cv = world.renderer.domElement;
+// Mouse look: click the scene to capture the pointer, then moving the mouse turns the camera.
+// (Dragging still works if the browser refuses pointer lock.)
+const locked = () => document.pointerLockElement === cv;
 let dragging = false;
-cv.addEventListener('pointerdown', (e) => { dragging = true; try { cv.setPointerCapture(e.pointerId); } catch { /* bỏ qua */ } });
-cv.addEventListener('pointermove', (e) => { if (dragging) yaw -= e.movementX * 0.22 * settings.sensitivity; });
+cv.addEventListener('pointerdown', (e) => {
+  if (screen === 'playing' && game && !game.paused && !locked()) {
+    try { cv.requestPointerLock(); } catch { /* fall back to drag */ }
+  }
+  dragging = true;
+  try { cv.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+});
+addEventListener('pointermove', (e) => {
+  if ((locked() || dragging) && screen === 'playing' && game && !game.paused) yaw -= e.movementX * 0.09 * settings.sensitivity;
+});
 addEventListener('pointerup', () => { dragging = false; });
+// Esc releases the pointer lock before the page sees the key: treat that as "pause".
+document.addEventListener('pointerlockchange', () => {
+  if (!locked() && screen === 'playing' && game && !game.paused) pauseQueued = true;
+});
 
 // ---------- vòng lặp chính: fixed timestep 60 Hz, render mỗi rAF ----------
 let last = performance.now();
@@ -160,8 +175,8 @@ function frame(now) {
   }
 
   if (screen === 'playing' && game) {
-    if (keys.has('KeyQ')) yaw += 130 * dt * settings.sensitivity;
-    if (keys.has('KeyZ')) yaw -= 130 * dt * settings.sensitivity;
+    if (keys.has('KeyQ')) yaw += 80 * dt * settings.sensitivity;
+    if (keys.has('KeyZ')) yaw -= 80 * dt * settings.sensitivity;
 
     const input = {
       move: [
@@ -215,6 +230,7 @@ function frame(now) {
       hud.update(game, (x, y, z) => world.project(x, y, z));
     }
     screens.setPause(game.paused && !screens.settingsOpen);
+    if (game.paused && document.pointerLockElement) document.exitPointerLock();
     audio.setPaused(game.paused);
   } else {
     // menu / intro / result / dawn: camera quay chậm trên nền thế giới

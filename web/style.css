@@ -80,3 +80,11 @@ canvas { display: block; }
 .setting-row label { flex: 0 0 130px; font-size: 15px; }
 .setting-row input[type="range"] { flex: 1; accent-color: var(--gold); }
 .setting-val { flex: 0 0 52px; text-align: right; color: var(--gold); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.cd { width: 64px; height: 64px; }
+.cd-label { top: 36%; }
+.cd-key { position: absolute; top: 4px; left: 0; right: 0; font-size: 8px; opacity: .65; }
+.cd-time { position: absolute; bottom: 5px; left: 0; right: 0; font-size: 13px; font-weight: 700; color: var(--lit); text-shadow: 0 1px 3px #000; font-variant-numeric: tabular-nums; }
+.cd.busy { border-color: rgba(255, 90, 95, .7); }
+.cd.busy .cd-time { color: var(--danger); }
+.cd.ready .cd-time { font-size: 9px; }

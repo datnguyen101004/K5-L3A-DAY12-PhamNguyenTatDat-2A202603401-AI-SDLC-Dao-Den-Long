@@ -46,7 +46,7 @@ Các số tuning nằm trong `game.contract.json` (nguồn duy nhất).
 | A21 | Đèn đặt tại độ cao y (Đêm 3) | Khoảng cách tương tác/vùng an toàn chỉ tính XZ (như Phase 1) |
 | A22 | Điểm xuất phát Đêm 3 / hồi sinh | (0,0,30) (tầng 0, vì (0,0,0) nằm trong tháp); Đêm 2 (0,0,0) |
 | A23 | Phạm vi leo | Bước lên tối đa 0.5 m (dốc đi được, vách 3 m thì không); tiếp đất khi cắt mặt phẳng từ trên xuống |
-| A24 | Bóng Mực và địa hình | Chỉ đi trên cùng một mức mặt đất; bị vách/hố chặn (không tìm đường); vì vậy trên Đêm 3 Bóng Mực không lên tầng 1/2 |
+| A24 | Bóng Mực và địa hình | Chỉ bước trên mặt đất liên tục (không leo vách, không nhảy xuống hố). Chạy thẳng khi được; nếu 4 tick liên tiếp không tiến lại gần thì dùng BFS lưới 1 m (tránh vách, vực, tháp, vùng an toàn của đèn đã sáng; đi được dốc/cầu) tới người chơi, hoặc tới ô đi được gần người chơi nhất, tính lại mỗi 20 tick. Nhờ vậy Bóng Mực qua cầu tre (Đêm 2), lên tầng 1 bằng dốc (Đêm 3), và đứng vòng quanh mép vùng an toàn thay vì kẹt. Tầng 2 chỉ lên được bằng bục nên Bóng Mực không lên. Ở địa hình thoáng hành vi vẫn là đường thẳng 4 m/s |
 | A25 | Wander | Đi chậm 2 m/s theo hướng ngẫu nhiên đổi mỗi 120 tick. `spawning` kéo dài 30 tick (không di chuyển, không gây hại) |
 | A26 | `state_ticks_left` | Số tick còn lại của trạng thái; scenario không nêu thì spawning=30, recoil=60, stunned=120 |
 | A27 | Recoil | Đúng 60 lần dịch 2/60 m sau hit |

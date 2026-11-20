@@ -5,7 +5,7 @@ Truy vết từng yêu cầu → test: `docs/spec/ticket-02.md`.
 
 | Nhóm | Bằng chứng | Kết quả |
 |---|---|---|
-| Số chuẩn, bản đồ, tính năng mới (Gió Lạc, Bùa, gió, rơi, bục nhảy, pause...) | `npm-test.txt`: 42 test đạt (40 headless + 2 campaign), mỗi tính năng mới có ≥ 1 scenario | Đạt |
+| Số chuẩn, bản đồ, tính năng mới (Gió Lạc, Bùa, gió, rơi, bục nhảy, pause...) | `npm-test.txt`: 43 test đạt (41 headless + 2 campaign), mỗi tính năng mới có ≥ 1 scenario | Đạt |
 | Chuỗi 3 Đêm, tổng điểm, thua thì chơi lại | `tests/campaign.test.js` + trình duyệt (xem dưới) | Đạt |
 | Tính tất định 3 Đêm | `determinism.txt`: hash 2 lần chạy 21.600 tick trùng nhau | Đạt |
 | Một Đêm headless ≤ 30 s | `perf-headless.txt`: ~0.2-0.3 s mỗi Đêm | Đạt |

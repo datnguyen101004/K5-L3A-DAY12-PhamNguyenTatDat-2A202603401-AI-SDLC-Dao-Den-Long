@@ -3,7 +3,7 @@
 Game 3D (three.js) + deterministic headless sim. Contract: `game.contract.json` (Test Contract **v1.1**, 3 Đêm). Spec: `docs/spec/ticket-02.md`.
 
 ## Commands
-- Install: `npm install` · Play: `npm start` (http://localhost:8080) · Test: `npm test` (~10 s)
+- Install: `npm install` · Play: `npm start` (http://localhost:8081) · Test: `npm test` (~10 s)
 - Headless: `node src/headless.js --seed 1 --night 1|2|3 --ticks 600 --out out.jsonl [--scenario f] [--inputs f] [--snapshot-every N]`
 - Proof: `node scripts/prove.mjs <phase>` (writes `docs/proof/phase-<phase>/`)
 

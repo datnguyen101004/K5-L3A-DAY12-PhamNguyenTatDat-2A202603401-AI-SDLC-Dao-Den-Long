@@ -15,8 +15,13 @@ export class HUD {
     this.flashEl = $('hud-flash');
     this.dashFill = document.querySelector('#cd-dash .cd-fill');
     this.pulseFill = document.querySelector('#cd-pulse .cd-fill');
-    this.dashState = $('cd-dash-state');
-    this.pulseState = $('cd-pulse-state');
+    this.jumpEl = $('cd-jump');
+    this.dashEl = $('cd-dash');
+    this.pulseEl = $('cd-pulse');
+    this.jumpTime = $('cd-jump-time');
+    this.dashTime = $('cd-dash-time');
+    this.pulseTime = $('cd-pulse-time');
+    this.jumpFill = document.querySelector('#cd-jump .cd-fill');
     this.flameSlots = [];
     for (let i = 0; i < tuning.flames; i++) {
       const d = document.createElement('div');
@@ -71,8 +76,21 @@ export class HUD {
     const pf = Math.min(1, p.pulseCd / pulseMax);
     this.set('dashcd', Math.round(df * 100), (v) => { this.dashFill.style.background = `conic-gradient(rgba(6,8,18,.72) ${v}%, rgba(6,8,18,0) ${v}%)`; });
     this.set('pulcd', Math.round(pf * 100), (v) => { this.pulseFill.style.background = `conic-gradient(rgba(6,8,18,.72) ${v}%, rgba(6,8,18,0) ${v}%)`; });
-    this.set('charmstate', charm, (v) => { this.dashState.textContent = v ? 'sẵn sàng' : ''; });
-    this.set('pulseok', p.carried >= t.pulse_cost, (v) => { this.pulseState.textContent = v ? '' : `${p.carried}/${t.pulse_cost}`; });
+    // Countdown text: seconds left on cooldown, or what the skill is waiting for.
+    const sec = (ticks) => (ticks / 60).toFixed(1) + 's';
+    const show = (key, el, timeEl, busy, text) => this.set(key, (busy ? 'b:' : 'r:') + text, () => {
+      el.classList.toggle('busy', busy);
+      el.classList.toggle('ready', !busy);
+      timeEl.textContent = text;
+    });
+    show('jumpt', this.jumpEl, this.jumpTime, !p.grounded, p.grounded ? 'sẵn sàng' : 'trên không');
+    this.set('jumpfill', p.grounded ? 0 : 100, (v) => { this.jumpFill.style.background = `conic-gradient(rgba(6,8,18,.72) ${v}%, rgba(6,8,18,0) ${v}%)`; });
+    if (charm) show('dasht', this.dashEl, this.dashTime, false, 'không hồi');
+    else if (p.dashT > 0) show('dasht', this.dashEl, this.dashTime, true, 'đang lướt');
+    else show('dasht', this.dashEl, this.dashTime, p.dashCd > 0, p.dashCd > 0 ? sec(p.dashCd) : 'sẵn sàng');
+    if (p.pulseCd > 0) show('pulset', this.pulseEl, this.pulseTime, true, sec(p.pulseCd));
+    else if (p.carried < t.pulse_cost) show('pulset', this.pulseEl, this.pulseTime, true, `cần ${t.pulse_cost} đom đóm`);
+    else show('pulset', this.pulseEl, this.pulseTime, false, 'sẵn sàng');
 
     // Prompt nạp đèn khi gần đèn chưa sáng
     let best = null;

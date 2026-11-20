@@ -1,11 +1,11 @@
-// Minimal static server for the browser client. `npm start` -> http://localhost:8080
+// Minimal static server for the browser client. `npm start` -> http://localhost:8081
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-const port = Number(process.env.PORT) || 8080;
+const port = Number(process.env.PORT) || 8081;
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.json': 'application/json', '.css': 'text/css' };
 const allowed = ['/web/', '/src/', '/node_modules/three/', '/game.contract.json'];
 

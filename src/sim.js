@@ -610,6 +610,100 @@ export class Game {
     return [o.wanderDir[0] * speed, o.wanderDir[1] * speed];
   }
 
+  // ---------- shade navigation ----------
+  // Chasing is a straight line while that works. If the shade stops making progress (cliff, gap, tower, a lit
+  // lantern's zone between it and the player) it follows a BFS path over walkable cells for a while instead.
+  cellOk(x, z, pg, lit, R) {
+    if (this.maxTop(x, z) > pg + STEP || this.groundAt(x, z, pg) < pg - STEP) return false;
+    for (const l of lit) if (Math.hypot(x - l.pos[0], z - l.pos[2]) < R) return false;
+    return true;
+  }
+
+  /** Waypoints [x,z] toward (tx,tz); if unreachable, toward the reachable cell closest to it. */
+  findPath(s, tx, tz) {
+    const [x0, x1, z0, z1] = this.map.bounds;
+    const W = x1 - x0;
+    const H = z1 - z0;
+    if (!this.grid) this.grid = { stamp: new Uint32Array(W * H), prev: new Int32Array(W * H), gnd: new Float32Array(W * H), q: new Int32Array(W * H), mark: 0 };
+    const G = this.grid;
+    const mark = ++G.mark;
+    const R = this.t.safe_radius;
+    const lit = this.lanterns.filter((l) => l.lit);
+    const sx = Math.floor(s.pos[0] - x0);
+    const sz = Math.floor(s.pos[2] - z0);
+    if (sx < 0 || sz < 0 || sx >= W || sz >= H) return [];
+    const start = sz * W + sx;
+    G.stamp[start] = mark;
+    G.prev[start] = -1;
+    G.gnd[start] = this.shadeGround(s);
+    let head = 0;
+    let tail = 0;
+    G.q[tail++] = start;
+    let best = start;
+    let bestD = Math.hypot(x0 + sx + 0.5 - tx, z0 + sz + 0.5 - tz);
+    const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+    while (head < tail) {
+      const c = G.q[head++];
+      const ccx = c % W;
+      const ccz = (c / W) | 0;
+      const pg = G.gnd[c];
+      for (const [dx, dz] of DIRS) {
+        const nx = ccx + dx;
+        const nz = ccz + dz;
+        if (nx < 0 || nz < 0 || nx >= W || nz >= H) continue;
+        const n = nz * W + nx;
+        if (G.stamp[n] === mark) continue;
+        const wx = x0 + nx + 0.5;
+        const wz = z0 + nz + 0.5;
+        if (!this.cellOk(wx, wz, pg, lit, R)) continue;
+        if (dx && dz && !(this.cellOk(x0 + ccx + dx + 0.5, z0 + ccz + 0.5, pg, lit, R) && this.cellOk(x0 + ccx + 0.5, z0 + ccz + dz + 0.5, pg, lit, R))) continue; // no corner cutting
+        G.stamp[n] = mark;
+        G.prev[n] = c;
+        G.gnd[n] = this.groundAt(wx, wz, pg);
+        G.q[tail++] = n;
+        const dd = Math.hypot(wx - tx, wz - tz);
+        if (dd < bestD - 1e-9) {
+          bestD = dd;
+          best = n;
+          if (dd <= 0.8) {
+            head = tail; // close enough: stop searching
+            break;
+          }
+        }
+      }
+    }
+    const path = [];
+    for (let c = best; c !== -1; c = G.prev[c]) path.push([x0 + (c % W) + 0.5, z0 + ((c / W) | 0) + 0.5]);
+    return path.reverse();
+  }
+
+  chase(s, p, d, sp) {
+    if (d <= 1e-9) return;
+    if (s.pathT > 0) {
+      if (!s.path || s.pathCd-- <= 0) {
+        s.path = this.findPath(s, p.pos[0], p.pos[2]);
+        s.pathCd = 20;
+      }
+      if (s.path.length <= 3) s.pathT--; // arrived: let the straight chase resume; otherwise keep following the path
+      const w = s.path[Math.min(2, s.path.length - 1)];
+      if (!w) return;
+      const wd = Math.hypot(w[0] - s.pos[0], w[1] - s.pos[2]);
+      if (wd > 1e-9) {
+        const m = Math.min(wd, sp);
+        this.shadeStep(s, ((w[0] - s.pos[0]) / wd) * m, ((w[1] - s.pos[2]) / wd) * m);
+      }
+      return;
+    }
+    const m = Math.min(d, sp);
+    this.shadeStep(s, ((p.pos[0] - s.pos[0]) / d) * m, ((p.pos[2] - s.pos[2]) / d) * m);
+    s.stuck = d - distXZ(p.pos, s.pos) < 0.3 * m ? (s.stuck ?? 0) + 1 : 0;
+    if (s.stuck >= 4) {
+      s.pathT = 60;
+      s.path = null;
+      s.stuck = 0;
+    }
+  }
+
   moveShades() {
     const p = this.p;
     const t = this.t;
@@ -640,10 +734,7 @@ export class Game {
       else if (s.state === 'chase' && d > 18) s.state = 'wander';
       const sp = this.speedShade / TICK_RATE;
       if (s.state === 'chase') {
-        if (d > 1e-9) {
-          const m = Math.min(d, sp);
-          this.shadeStep(s, ((p.pos[0] - s.pos[0]) / d) * m, ((p.pos[2] - s.pos[2]) / d) * m);
-        }
+        this.chase(s, p, d, sp);
       } else {
         const [wx, wz] = this.wander(s, this.speedShade / 2);
         if (!this.shadeStep(s, wx / TICK_RATE, wz / TICK_RATE)) s.wanderT = 0;

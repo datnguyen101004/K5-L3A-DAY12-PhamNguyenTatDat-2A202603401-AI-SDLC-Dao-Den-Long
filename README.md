@@ -7,10 +7,10 @@ Game 3D góc nhìn thứ ba. Mây, người giữ đèn nhỏ tuổi, gom đom �
 ## Cài đặt và chạy (Node.js >= 20, macOS/Linux/Windows)
 ```bash
 npm install
-npm start          # mở http://localhost:8080
-npm test           # 42 kịch bản headless + campaign
+npm start          # mở http://localhost:8081
+npm test           # 43 kịch bản headless + campaign
 ```
-`http://localhost:8080/?night=2` (hoặc 3) bỏ qua menu để vào thẳng thẻ giới thiệu của đêm đó (dùng để kiểm thử).
+`http://localhost:8081/?night=2` (hoặc 3) bỏ qua menu để vào thẳng thẻ giới thiệu của đêm đó (dùng để kiểm thử).
 
 ## Điều khiển
 | Phím | Việc |
@@ -20,13 +20,13 @@ npm test           # 42 kịch bản headless + campaign
 | Shift | Lướt (14 m/s, 0.2 s, hồi 1.5 s) |
 | E | Nạp đom đóm vào đèn gần nhất (trong 2 m) |
 | F | Tỏa Sáng: xua Bóng Mực (3 đom đóm, hồi 3 s) |
-| Chuột kéo / Q, Z | Xoay camera |
+| Nhấp vào màn hình, rồi rê chuột / Q, Z | Xoay camera (Esc nhả chuột và tạm dừng) |
 | Esc / P | Tạm dừng (Tiếp tục / Chơi lại Đêm / Cài đặt / Về menu) |
 | R / Enter | Tiếp tục ở màn kết quả / bắt đầu Đêm |
 
 ## Luật chơi (số chuẩn Ticket-02, nằm ở `game.contract.json`)
 - Mang tối đa 10 đom đóm; một đèn cần 10 (nạp nhiều lần được, đèn nhớ tiến độ). Đèn sáng tạo vùng an toàn 6 m.
-- Bóng Mực (4.0 m/s, Đêm 3: 4.5) phát hiện 12 m, bỏ đuổi 18 m. Chạm: -1 Ngọn Lửa, rơi một nửa đom đóm, bất tử 1.5 s. Tỏa Sáng làm choáng 2 s và đẩy lùi 4 m.
+- Bóng Mực (4.0 m/s, Đêm 3: 4.5) phát hiện 12 m, bỏ đuổi 18 m; biết đi vòng qua cầu, lên dốc, và quanh vùng sáng của đèn khi bị chặn. Chạm: -1 Ngọn Lửa, rơi một nửa đom đóm, bất tử 1.5 s. Tỏa Sáng làm choáng 2 s và đẩy lùi 4 m.
 - Rơi khỏi đảo (Y < -10): -1 Ngọn Lửa, mất hết đom đóm, hồi sinh sau 1 s.
 - Gió Lạc (Đêm 2-3) cướp tới 3 đom đóm của người mang ≥ 5; Tỏa Sáng đuổi nó và buộc nó thả lại. Bùa Gió: chạy 7.2 m/s, lướt không hồi chiêu trong 10 s. Đêm 3 có gió mạnh (báo trước 2 s).
 - Thắng: thắp hết đèn. Thua: hết Ngọn Lửa hoặc hết giờ. Đêm 1/2/3: 300/330/360 s.

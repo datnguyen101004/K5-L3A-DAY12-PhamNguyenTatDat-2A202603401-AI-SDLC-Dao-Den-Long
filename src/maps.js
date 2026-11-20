@@ -20,6 +20,7 @@ const night1 = {
   pads: [],
   drifters: false,
   wind: false,
+  bounds: [-41, 41, -41, 41],
   topsAt: (x, z) => (Math.hypot(x, z) <= 40 ? [0] : []),
 };
 
@@ -39,6 +40,7 @@ const night2 = {
   ],
   drifters: true,
   wind: false,
+  bounds: [-29, 99, -29, 29],
   topsAt: (x, z) =>
     Math.hypot(x, z) <= 28 || Math.hypot(x - B[0], z) <= 28 || (x >= 26 && x <= 44 && Math.abs(z) <= 2) ? [0] : [],
 };
@@ -61,6 +63,7 @@ const night3 = {
   pads: [{ pos: [0, 3, 13], vy: 12, h: 8, dir: [0, -1] }],
   drifters: true,
   wind: true,
+  bounds: [-46, 46, -46, 46],
   topsAt: (x, z) => {
     const r = Math.hypot(x, z);
     if (r > 45) return [];

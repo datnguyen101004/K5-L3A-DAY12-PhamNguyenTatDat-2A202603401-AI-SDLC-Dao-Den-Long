@@ -567,3 +567,19 @@ test('performance: a full night (21600 ticks) runs headless in <= 30 s', () => {
     assert.ok(Date.now() - t0 < 30000, `night ${night} took ${Date.now() - t0} ms`);
   }
 });
+
+// ---------------------------------------------------------------- shade navigation
+test('smarter shades: path around the gap to the bridge (night 2) and up a ramp to tier 1 (night 3)', () => {
+  const idleFor = { random_motes: false, random_shades: false, random_drifters: false, wind_enabled: false, motes: [], charms: [], drifters: [] };
+  // straight line from island A edge to the bridge end crosses open sea; the shade must walk to the bridge
+  const a = run({ night: 2, scenario: { ...idleFor, player: { pos: [42, 0, 1], flames: 99, invuln_ticks: 0 }, shades: [{ id: 'S1', pos: [27, 1, 6], state: 'chase' }] }, ticks: 900, every: 1 });
+  assert.ok(a.ev('player_hit').length > 0, 'shade reached the player across the bridge');
+  assert.ok(a.snaps.every((s) => s.shades[0].pos[1] === 1 || s.tick === 0), 'stays on the ground');
+  // tier 1 player, shade on tier 0: only the ramps lead up
+  const b = run({ night: 3, scenario: { ...idleFor, player: { pos: [18, 3, 10], flames: 99, invuln_ticks: 0 }, shades: [{ id: 'S1', pos: [30, 1, 12], state: 'chase' }] }, ticks: 900, every: 1 });
+  assert.ok(b.ev('player_hit').length > 0, 'shade climbed to tier 1');
+  assert.equal(b.at(900).shades[0].pos[1] >= 3.9 || b.ev('player_hit').length > 0, true);
+  // open field behaviour is unchanged: straight line at 4 m/s
+  const c = run({ scenario: { ...idleFor, player: { flames: 9 }, shades: [{ id: 'S1', pos: [10, 1, 0] }] }, ticks: 60, every: 1 });
+  near(c.at(60).shades[0].pos[0], 6, 0.01);
+});

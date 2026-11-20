@@ -12,6 +12,7 @@ Mỗi mục có tiêu chí nghiệm thu (AC) kiểm chứng được và test t�
 | Đèn: nạp nhiều lần, nhớ tiến độ, gần nhất / id nhỏ, 10 đom đóm, +10/đom đóm nạp, +100/đèn | `deposit...` |
 | Vùng an toàn 6 m, đèn vừa thắp đẩy Bóng Mực ra ≤ 30 tick không sát thương | `safe zone`, `lighting a lantern expels...` |
 | Tỏa Sáng: 3 đom đóm, tâm +0.8 m, 3D ≤ 5 m, choáng 120, đẩy 4 m/15 tick (+X nếu trùng), +5/lần, hồi 3 s | `pulse...` (2 test) |
+| Bóng Mực qua cầu / lên dốc bằng đường đi BFS khi bị chặn, thoáng thì đi thẳng (A24) | `smarter shades...` |
 | Bóng Mực 4.0 m/s, phát hiện 12 / bỏ 18, chạm, 1 hit/tick, recoil 2 m/60 tick, hit lúc bất tử không làm gì | `shade AI`, `shade hit...`, `invulnerable player...` |
 | Hậu quả bị đánh: -1 lửa, rơi floor(n/2) vành 1.5–2.5, TTL 480, bất tử 90 | `shade hit...`, `dropped mote TTL` |
 | Rơi (Y < -10): đúng 1 lần, bỏ qua bất tử, mất hết đom đóm, chờ 60 tick, hồi sinh bất tử 90; hết lửa thì thua ngay | `fall...` (2 test) |
