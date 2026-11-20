@@ -47,3 +47,14 @@
 4. Đã thử chơi trong trình duyệt sau khi đổi client, vẫn dùng hook `window.__app.game` để tạo tình huống nên bằng chứng UI là bán tự động (đã ghi).
 
 **Harness:** AGENTS.md thêm quy tắc "luật bị thay => ADR + CHANGELOG + viết lại test"; hook Stop `npm test`; skill `verify-headless`, `browser-check`.
+
+## Phase 3: phần sửa sau tag đầu tiên (theo phản hồi khi chơi thử)
+| Việc | Ghi chú |
+|---|---|
+| Làm lại hình ảnh (`web/look.js`, `web/world.js`) | Bloom, bầu trời, texture vẽ bằng code, đèn lồng lụa, mô hình Mây/Bóng Mực mới, bản đồ nhỏ, bảng dầu, thông báo. Không dùng asset ngoài để khỏi xử lý bản quyền |
+| Sửa xoay chuột | Nguyên nhân: chuột chỉ xoay khi đã pointer-lock, mà lock chỉ bật khi nhấp; vào Đêm mới / Tiếp tục ngay sau Esc thì không có lock. Sửa: lock khi bắt đầu Đêm và khi Tiếp tục, rê chuột vẫn xoay khi chưa lock, có dòng nhắc |
+| Chặn châm dầu lãng phí (client) | Đèn > 90 dầu: E bị bỏ qua vì sẽ tốn 1 đom đóm cho < 10 dầu. Không đổi luật headless |
+
+Lỗi của AI ở đoạn này: lần sửa camera đầu tiên chỉ đo FPS và độ trễ khung hình (đều ổn) nên kết luận sai rằng "đã hết lag"; nguyên nhân thật (mất pointer-lock) chỉ lộ ra khi đo góc camera theo từng tổ hợp phím. Bài học: đo đúng đại lượng người dùng phàn nàn (góc camera), không phải đại lượng tiện đo (FPS).
+
+**Token ước tính thêm:** khoảng 80-120k ([INFERENCE]).

@@ -8,9 +8,12 @@ Tái tạo: `npm test`, `node scripts/prove.mjs 3`. Máy: Windows 11 x64, i5-125
 | Test cũ bị luật mới làm sai | Viết lại có lý do, không skip: bảng ở CHANGELOG mục 3; `grep -rn "\.skip\|\.todo\|skip:" tests/` không có kết quả | Đạt |
 | Hồi quy Phase 1-2 không bị thay thế | Test Phase 2 còn lại (di chuyển, lướt, nhảy, rơi, Gió Lạc, Bùa, gió, bản đồ, pause, validation, tất định) chạy lại và đạt, chỉ đổi số theo contract | Đạt (test ẩn của giảng viên chưa có để chạy) |
 | Tính tất định 3 Đêm | `determinism.txt` | Đạt |
-| Một Đêm headless ≤ 30 s | `perf-headless.txt`: Đêm 1 0.3 s, Đêm 2 0.4 s, Đêm 3 1.7 s | Đạt |
+| Một Đêm headless ≤ 30 s | `perf-headless.txt`: Đêm 1 0.2 s, Đêm 2 0.3 s, Đêm 3 1.3 s | Đạt |
 | Mẫu một đêm sống tới bình minh | `samples/dawn3.*`: 5/7 đèn sáng, kết thúc `dawn_survived`, điểm 1170 = 3·50+… khớp tay (xem `[T3] ambient scoring`) | Đạt |
 | UI: thanh dầu, nhấp nháy, vùng an toàn chỉ khi dầu ≥ 30, hút dầu (tia tới đèn), sức chứa 8/16, "Đèn k/n (cần m)", nhắc "Châm dầu (60/100)", bảng màu dễ phân biệt (viền #00B3FF, thanh dầu trắng khi yếu), cài đặt lưu | Chơi trong trình duyệt: `ui-fuel-drain.png` (đèn yếu, Bóng Mực đang hút, chế độ mù màu bật). Đã đọc lại: prompt "E — Châm dầu (60/100)", `localStorage` có `colorblind:true` | Đạt một phần (xem dưới) |
+
+| Giao diện mới (chỉ `web/`, không đổi headless) | `ui-v2-menu.png`, `ui-v2-hud.png`, `ui-v2-night1/2/3.png`: bloom, bầu trời, đèn lồng lụa, bản đồ nhỏ, bảng dầu từng đèn, thông báo sự kiện. FPS Chromium 1280×720: 57.4 / 55.8 / 57.8 (Đêm 1/2/3). 59 test vẫn đạt | Đạt |
+| Xoay camera bằng chuột | Chromium: Enter khóa chuột ngay; giữ W + rê chuột đổi góc camera; Esc → Tiếp tục khóa lại và vẫn xoay | Đạt (chưa thử chuột thật) |
 
 ## Hạn chế (trung thực)
 - Đèn tắt "xẹp 20% với vết rách" và tia hút dầu chỉ được thấy ở khoảng cách xa trong ảnh chụp; chưa xác nhận bằng mắt ở sát cho vết rách. Việc nhấp nháy 1 Hz đã thấy ở trạng thái mờ (ảnh), nhưng chưa quay clip.
@@ -18,4 +21,5 @@ Tái tạo: `npm test`, `node scripts/prove.mjs 3`. Máy: Windows 11 x64, i5-125
 - Cảnh báo ⚠ kèm màu trắng chỉ kiểm bằng CSS (đồng hồ ≤ 30 s, nút hồi chiêu), chưa chụp ảnh từng chỗ.
 - Âm thanh cho `lantern_out`/`refuel` dùng lại hiệu ứng có sẵn; chưa nghe.
 - Test của tôi tự suy ra các giá trị ticket để ngỏ (A35-A47): tốc độ wander tới đèn (4 m/s), thời điểm bắt đầu hút (tick sau), nhịp `fuel_drain`, đèn "đầy dầu không được chọn" (chỉ có hiệu lực trong đúng tick vừa châm vì dầu hao mỗi tick). Test ẩn có thể hiểu khác.
+- Ảnh `ui-v2-*` tạo tình huống bằng `window.__app.game` (thắp sẵn đèn, thêm Bóng Mực), không phải chơi thuần.
 - Hiệu năng Đêm 3 headless tăng ~7 lần (BFS cho Bóng Mực tìm đèn) nhưng vẫn rất xa ngưỡng 30 s.
