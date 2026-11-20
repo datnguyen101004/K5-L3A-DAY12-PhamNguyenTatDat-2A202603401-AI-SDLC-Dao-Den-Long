@@ -117,3 +117,5 @@ canvas { display: block; }
   #hud-clock.danger, #hud-wind { animation: none; }
   .btn { transition: none; }
 }
+
+#hud-fps { position: fixed; top: 52px; left: 16px; z-index: 50; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--gold); text-shadow: 0 1px 3px #000; pointer-events: none; }

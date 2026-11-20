@@ -32,7 +32,8 @@ export class World {
   constructor(container, tuning) {
     this.tuning = tuning;
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+    this.pixelCap = Math.min(window.devicePixelRatio || 1, 1.5);
+    this.renderer.setPixelRatio(Math.min(this.pixelCap, 1.25)); // adaptive quality raises it when there is headroom
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     container.appendChild(this.renderer.domElement);
 
@@ -74,9 +75,10 @@ export class World {
 
     // pool đèn point cho đèn lồng đã thắp (tối đa 5) + đèn của Mây = 6 đèn động
     this.lightPool = [];
-    for (let i = 0; i < 5; i++) {
+    // Always 3 lights, always visible: three.js recompiles every material whenever the number of visible lights
+    // changes, which showed up as a stutter each time a lantern was lit. Unused lights just get intensity 0.
+    for (let i = 0; i < 3; i++) {
       const L = new THREE.PointLight(PAL.lit, 0, 22, 1.8);
-      L.visible = false;
       this.scene.add(L);
       this.lightPool.push(L);
     }
@@ -417,10 +419,9 @@ export class World {
       const L = this.lightPool[i];
       if (i < litList.length) {
         const l = litList[i][2];
-        L.visible = true;
         L.position.set(l.pos[0], l.pos[1] + 3.35, l.pos[2]);
         L.intensity = 30;
-      } else { L.visible = false; L.intensity = 0; }
+      } else L.intensity = 0;
     }
     this.ambient.intensity = 0.15 + 0.55 * (n ? lit / n : 0);
 
@@ -598,6 +599,30 @@ export class World {
       on: !behind && Math.abs(tmpV.x) <= 0.98 && Math.abs(tmpV.y) <= 0.98,
       behind,
     };
+  }
+
+  /** Compile every shader variant up front. Otherwise the first lit lantern, shade, drifter or charm compiles
+   *  its material in the middle of play, which shows up as a stall. */
+  prewarm() {
+    const sv = this._shadeView('__warm');
+    const dv = this._drifterView('__warm');
+    const cv = this._charmView('__warm');
+    const hidden = [];
+    this.scene.traverse((o) => { if (!o.visible) { hidden.push(o); o.visible = true; } });
+    this.renderer.compile(this.scene, this.camera);
+    for (const o of hidden) o.visible = false;
+    this.group.remove(sv.grp);
+    this.group.remove(dv.mesh);
+    this.group.remove(cv.grp);
+    this.shadeViews.delete('__warm');
+    this.drifterViews.delete('__warm');
+    this.charmViews.delete('__warm');
+  }
+
+  /** Render-resolution scale (adaptive quality). */
+  setPixelRatio(pr) {
+    this.renderer.setPixelRatio(pr);
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
   render() { this.renderer.render(this.scene, this.camera); }

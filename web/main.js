@@ -63,6 +63,7 @@ function showIntro(night) {
 function startNight(night) {
   game = new Game({ seed: (Math.random() * 2 ** 31) >>> 0, night, tuning });
   world.buildNight(night, game.map);
+  world.prewarm();
   yaw = 0;
   pauseQueued = false;
   resumeQueued = false;
@@ -162,8 +163,36 @@ window.__perf = { fps: 0 };
 // Tiện ích debug/test: window.__app cho phép đọc state từ console headless.
 window.__app = { world, get game() { return game; }, campaign, get screen() { return screen; }, settings };
 
+// Adaptive resolution: if the GPU can't hold ~60 fps, render at a lower resolution (the UI stays sharp);
+// raise it again slowly when there is headroom. F3 shows the fps and the current scale.
+const fpsEl = document.getElementById('hud-fps');
+let qualityAt = 0;
+let goodChecks = 0;
+let fpsTextAt = 0;
+function adaptQuality(now) {
+  if (screen !== 'playing' || (game && game.paused) || now - qualityAt < 1500 || perfTimes.length < 60) return;
+  qualityAt = now;
+  const fps = window.__perf.fps;
+  const cur = world.renderer.getPixelRatio();
+  if (fps < 50 && cur > 0.6) {
+    world.setPixelRatio(Math.max(0.6, +(cur * 0.8).toFixed(2)));
+    goodChecks = 0;
+    perfTimes.length = 0; // re-measure at the new resolution
+  } else if (fps >= 58 && cur < world.pixelCap && ++goodChecks >= 4) {
+    world.setPixelRatio(Math.min(world.pixelCap, +(cur * 1.1).toFixed(2)));
+    goodChecks = 0;
+    perfTimes.length = 0;
+  }
+}
+addEventListener('keydown', (e) => { if (e.code === 'F3') { e.preventDefault(); fpsEl.classList.toggle('hidden'); } });
+
 function frame(now) {
   requestAnimationFrame(frame);
+  adaptQuality(now);
+  if (!fpsEl.classList.contains('hidden') && now - fpsTextAt > 500) {
+    fpsTextAt = now;
+    fpsEl.textContent = `${window.__perf.fps} fps · x${world.renderer.getPixelRatio().toFixed(2)}`;
+  }
   let dt = (now - last) / 1000;
   last = now;
   if (dt > 0.25) dt = 0.25;
