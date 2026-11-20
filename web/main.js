@@ -160,7 +160,7 @@ let acc = 0;
 const perfTimes = [];
 window.__perf = { fps: 0 };
 // Tiện ích debug/test: window.__app cho phép đọc state từ console headless.
-window.__app = { get game() { return game; }, campaign, get screen() { return screen; }, settings };
+window.__app = { world, get game() { return game; }, campaign, get screen() { return screen; }, settings };
 
 function frame(now) {
   requestAnimationFrame(frame);

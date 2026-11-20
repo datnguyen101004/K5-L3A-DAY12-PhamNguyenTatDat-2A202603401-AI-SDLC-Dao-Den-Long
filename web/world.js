@@ -161,6 +161,7 @@ export class World {
 
   /** Dựng lại toàn bộ thế giới cho một đêm (gọi khi bắt đầu màn). */
   buildNight(night, map) {
+    this.focus = null; // snap the camera to the player on the next frame
     this.scene.remove(this.group);
     this.group.traverse((o) => {
       if (o.geometry && !this.sharedGeos.has(o.geometry)) o.geometry.dispose();
@@ -566,10 +567,15 @@ export class World {
     const th = (yawDeg * Math.PI) / 180;
     const fx = Math.sin(th);
     const fz = Math.cos(th);
-    tmpV.set(pPos[0] - fx * 7.5, pPos[1] + 3.4, pPos[2] - fz * 7.5);
-    const k = 1 - Math.exp(-dt * 6);
-    this.camera.position.lerp(tmpV, k);
-    this.camera.lookAt(pPos[0] + fx * 2, pPos[1] + 1.3, pPos[2] + fz * 2);
+    // Only the follow point is smoothed. The orbit (yaw) is applied instantly: smoothing the camera position
+    // made the view trail behind the mouse and swing back, which felt like input lag.
+    if (!this.focus) this.focus = new THREE.Vector3(pPos[0], pPos[1], pPos[2]);
+    const k = 1 - Math.exp(-dt * 18);
+    this.focus.x += (pPos[0] - this.focus.x) * k;
+    this.focus.z += (pPos[2] - this.focus.z) * k;
+    this.focus.y += (pPos[1] - this.focus.y) * (1 - Math.exp(-dt * 8)); // gentler vertically (jumps, pads)
+    this.camera.position.set(this.focus.x - fx * 7.5, this.focus.y + 3.4, this.focus.z - fz * 7.5);
+    this.camera.lookAt(this.focus.x + fx * 2, this.focus.y + 1.3, this.focus.z + fz * 2);
   }
 
   /** Camera quay chậm cho menu / màn hình chờ (nền 3D phía sau). */
