@@ -89,7 +89,7 @@ export class HUD {
     else if (p.dashT > 0) show('dasht', this.dashEl, this.dashTime, true, 'đang lướt');
     else show('dasht', this.dashEl, this.dashTime, p.dashCd > 0, p.dashCd > 0 ? sec(p.dashCd) : 'sẵn sàng');
     if (p.pulseCd > 0) show('pulset', this.pulseEl, this.pulseTime, true, sec(p.pulseCd));
-    else if (p.carried < t.pulse_cost) show('pulset', this.pulseEl, this.pulseTime, true, `cần ${t.pulse_cost} đom đóm`);
+    else if (p.carried < t.pulse_cost) show('pulset', this.pulseEl, this.pulseTime, true, `${p.carried}/${t.pulse_cost} đóm`);
     else show('pulset', this.pulseEl, this.pulseTime, false, 'sẵn sàng');
 
     // Prompt nạp đèn khi gần đèn chưa sáng
@@ -124,9 +124,11 @@ export class HUD {
         const dx = pr.x - window.innerWidth / 2;
         const dy = pr.y - window.innerHeight / 2;
         const ang = Math.atan2(dy, dx);
-        const R = Math.min(window.innerWidth, window.innerHeight) / 2 - 80;
-        const ax = window.innerWidth / 2 + Math.cos(ang) * R;
-        const ay = window.innerHeight / 2 + Math.sin(ang) * R;
+        const hw = window.innerWidth / 2 - 70; // inset rectangle: clear of the corners and the bottom bars
+        const hh = window.innerHeight / 2 - 110;
+        const k = Math.min(Math.abs(Math.cos(ang)) > 1e-6 ? hw / Math.abs(Math.cos(ang)) : Infinity, Math.abs(Math.sin(ang)) > 1e-6 ? hh / Math.abs(Math.sin(ang)) : Infinity);
+        const ax = window.innerWidth / 2 + Math.cos(ang) * k;
+        const ay = window.innerHeight / 2 + Math.sin(ang) * k;
         this.arrowEl.classList.remove('hidden');
         this.arrowEl.style.transform = `translate(${(ax - 11).toFixed(1)}px, ${(ay - 11).toFixed(1)}px) rotate(${ang.toFixed(3)}rad)`;
       } else this.arrowEl.classList.add('hidden');

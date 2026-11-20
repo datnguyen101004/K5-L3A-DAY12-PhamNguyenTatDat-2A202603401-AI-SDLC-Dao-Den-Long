@@ -81,10 +81,39 @@ canvas { display: block; }
 .setting-row input[type="range"] { flex: 1; accent-color: var(--gold); }
 .setting-val { flex: 0 0 52px; text-align: right; color: var(--gold); font-weight: 700; font-variant-numeric: tabular-nums; }
 
-.cd { width: 64px; height: 64px; }
-.cd-label { top: 36%; }
-.cd-key { position: absolute; top: 4px; left: 0; right: 0; font-size: 8px; opacity: .65; }
-.cd-time { position: absolute; bottom: 5px; left: 0; right: 0; font-size: 13px; font-weight: 700; color: var(--lit); text-shadow: 0 1px 3px #000; font-variant-numeric: tabular-nums; }
-.cd.busy { border-color: rgba(255, 90, 95, .7); }
+/* skill buttons: rounded squares so the countdown text always fits */
+#hud-cds { gap: 10px; }
+.cd { width: 78px; height: 66px; border-radius: 14px; }
+.cd-fill { border-radius: 12px; }
+.cd-key { position: absolute; top: 5px; left: 0; right: 0; font-size: 10px; letter-spacing: .5px; opacity: .6; }
+.cd-label { top: 44%; font-size: 13px; white-space: nowrap; }
+.cd-time { position: absolute; bottom: 5px; left: 0; right: 0; font-size: 13px; font-weight: 700; color: var(--lit); text-shadow: 0 1px 3px #000; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cd.busy { border-color: rgba(255, 90, 95, .75); }
 .cd.busy .cd-time { color: var(--danger); }
-.cd.ready .cd-time { font-size: 9px; }
+.cd.ready .cd-time { font-size: 11px; color: var(--gold); }
+
+/* cheaper repaints; help text fades once you know the controls */
+#hud { contain: layout paint style; }
+#hud-help { max-width: calc(100vw - 280px); animation: helpfade 1.5s 20s forwards; }
+@keyframes helpfade { to { opacity: 0.15; } }
+.screen.overlay { background: rgba(8, 6, 20, 0.72); }
+.btn:focus-visible, input[type="range"]:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.panel { max-width: min(560px, 92vw); }
+
+/* small windows */
+@media (max-width: 900px), (max-height: 560px) {
+  #hud-help { display: none; }
+  .cd { width: 62px; height: 54px; }
+  .cd-label { font-size: 11px; top: 38%; }
+  .cd-key { display: none; }
+  .cd-time { font-size: 11px; bottom: 3px; }
+  #hud-cds { bottom: 14px; right: 8px; gap: 6px; }
+  #hud-motes { bottom: 14px; }
+  #hud-prompt { bottom: 76px; }
+  .panel { padding: 20px 22px; }
+  .title { font-size: 32px; letter-spacing: 3px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #hud-clock.danger, #hud-wind { animation: none; }
+  .btn { transition: none; }
+}
