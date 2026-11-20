@@ -3,6 +3,7 @@
 ## Unreleased (after tag phase-3): client only, headless output unchanged
 - Visuals: bloom post-processing, gradient night sky + moon, procedural textures (grass, sand, wood, silk lantern, straw hat), Hội An style silk lanterns, new Mây model, inky shades that face their target, low decor (grass tufts, flowers, pebbles).
 - HUD: heading-up minimap (lanterns with fuel ring, shades, drain links, motes), per-lantern fuel panel, event toasts, SVG flame icons, intro shows the night goal and keys, result shows lit lanterns / flames left.
+- Mouse look: the pointer is captured when a night starts (Bắt đầu / Enter / R) and on resume; mouse movement turns the camera even when the pointer is not captured; a hint asks for a click when it is not; rejected lock requests no longer throw; the cursor is released on the result screen.
 - Gameplay guard (client): pressing E at a lantern above 90 fuel is ignored (it would spend a whole mote for < 10 fuel); prompt says the lantern is still full.
 
 ## Phase 3 (Ticket-03 "Đèn cạn dầu", Contract v1.2): BREAKING CHANGES

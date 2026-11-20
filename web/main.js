@@ -49,7 +49,7 @@ const screens = new Screens({
   onNext() { showIntro(campaign.night); },
   onRetry() { if (game) startNight(game.night); },
   onMenu() { game = null; screen = 'menu'; world.buildNight(1, MAPS[1]); screens.showMenu(); },
-  onResume() { resumeQueued = true; try { world.renderer.domElement.requestPointerLock(); } catch { /* ignore */ } },
+  onResume() { resumeQueued = true; lockPointer(); },
   onRestart() { if (game) startNight(game.night); },
   onSettings(from) { screens.openSettings(from); },
   onSettingsBack() {
@@ -71,6 +71,7 @@ function showIntro(night) {
 }
 
 function startNight(night) {
+  lockPointer();
   game = new Game({ seed: (Math.random() * 2 ** 31) >>> 0, night, tuning });
   world.buildNight(night, game.map);
   world.prewarm();
@@ -88,6 +89,7 @@ function startNight(night) {
 }
 
 function onGameOver() {
+  if (document.pointerLockElement) document.exitPointerLock(); // free the cursor for the result buttons
   lastOutcome = campaign.record(game); // 'next' | 'retry' | 'dawn'
   audio.play(game.state === 'won' ? 'win' : 'lose');
   setTimeout(() => {
@@ -163,24 +165,26 @@ addEventListener('keyup', (e) => keys.delete(e.code));
 addEventListener('pointerdown', () => audio.ensure(), { capture: true });
 
 const cv = world.renderer.domElement;
-// Mouse look: click the scene to capture the pointer, then moving the mouse turns the camera.
-// (Dragging still works if the browser refuses pointer lock.)
+// Mouse look: the night start (or a click on the scene) captures the pointer; any mouse movement turns the camera,
+// captured or not, so the camera never "stops responding" while the cursor is free.
 const locked = () => document.pointerLockElement === cv;
-let dragging = false;
-cv.addEventListener('pointerdown', (e) => {
-  if (screen === 'playing' && game && !game.paused && !locked()) {
-    try { cv.requestPointerLock(); } catch { /* fall back to drag */ }
-  }
-  dragging = true;
-  try { cv.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+// requestPointerLock returns a promise in Chrome and rejects (e.g. within ~1 s after Esc); never let that throw.
+function lockPointer() {
+  if (locked()) return;
+  try {
+    const p = cv.requestPointerLock();
+    if (p && typeof p.catch === 'function') p.catch(() => {});
+  } catch { /* not allowed right now: the hint asks for a click */ }
+}
+cv.addEventListener('pointerdown', () => {
+  if (screen === 'playing' && game && !game.paused) lockPointer();
 });
 addEventListener('pointermove', (e) => {
-  if ((locked() || dragging) && screen === 'playing' && game && !game.paused) yaw -= e.movementX * 0.09 * settings.sensitivity;
+  if (screen === 'playing' && game && !game.paused) yaw -= e.movementX * 0.09 * settings.sensitivity;
 });
-addEventListener('pointerup', () => { dragging = false; });
 // Esc releases the pointer lock before the page sees the key: treat that as "pause".
 document.addEventListener('pointerlockchange', () => {
-  if (!locked() && screen === 'playing' && game && !game.paused) pauseQueued = true;
+  if (!locked() && screen === 'playing' && game && game.state === 'playing' && !game.paused) pauseQueued = true;
 });
 
 // ---------- vòng lặp chính: fixed timestep 60 Hz, render mỗi rAF ----------
@@ -189,11 +193,12 @@ let acc = 0;
 const perfTimes = [];
 window.__perf = { fps: 0 };
 // Tiện ích debug/test: window.__app cho phép đọc state từ console headless.
-window.__app = { world, get game() { return game; }, campaign, get screen() { return screen; }, settings };
+window.__app = { world, get yaw() { return yaw; }, get game() { return game; }, campaign, get screen() { return screen; }, settings };
 
 // Adaptive resolution: if the GPU can't hold ~60 fps, render at a lower resolution (the UI stays sharp);
 // raise it again slowly when there is headroom. F3 shows the fps and the current scale.
 const fpsEl = document.getElementById('hud-fps');
+const lockHint = document.getElementById('hud-lockhint');
 let qualityAt = 0;
 let goodChecks = 0;
 let fpsTextAt = 0;
@@ -286,6 +291,7 @@ function frame(now) {
       world.sync(game, 0, world.lastT);
       hud.update(game, (x, y, z) => world.project(x, y, z), yaw);
     }
+    lockHint.classList.toggle('hidden', game.paused || locked() || game.state !== 'playing');
     screens.setPause(game.paused && !screens.settingsOpen);
     if (game.paused && document.pointerLockElement) document.exitPointerLock();
     audio.setPaused(game.paused);

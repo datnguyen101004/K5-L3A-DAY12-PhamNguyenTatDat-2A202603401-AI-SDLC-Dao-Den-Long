@@ -181,3 +181,4 @@ kbd { display: inline-block; min-width: 18px; padding: 1px 6px; margin-right: 3p
 .flame.off { filter: grayscale(1) brightness(.45); background-color: transparent; }
 #screen-menu { background: radial-gradient(ellipse at 50% 40%, rgba(14, 20, 48, 0.15), rgba(14, 20, 48, 0.75) 80%); }
 .panel { background: rgba(14, 20, 48, 0.78); backdrop-filter: blur(6px); }
+#hud-lockhint { position: absolute; top: 50%; left: 50%; transform: translate(-50%, 70px); padding: 6px 14px; border-radius: 14px; background: rgba(14, 20, 48, 0.75); font-size: 13px; opacity: .85; }
