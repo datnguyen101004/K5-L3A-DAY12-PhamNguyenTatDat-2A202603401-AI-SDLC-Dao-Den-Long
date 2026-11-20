@@ -40,6 +40,151 @@ export class HUD {
     this.capEl.className = 'cap-text';
     this.motesEl.appendChild(this.capEl);
     this.cache = {};
+    this.lampsEl = $('hud-lamps');
+    this.toastsEl = $('hud-toasts');
+    this.mapEl = $('hud-map');
+    this.mapCtx = this.mapEl.getContext('2d');
+    this.mapAt = 0;
+    this.lampRows = [];
+  }
+
+  /** Called once per night: per-lantern rows and a pre-rendered terrain image for the minimap. */
+  setMap(map, game) {
+    this.lampsEl.textContent = '';
+    this.lampRows = game.lanterns.map((l) => {
+      const row = document.createElement('div');
+      row.className = 'lamp';
+      row.innerHTML = `<span class="lamp-id">${l.id}</span><span class="lamp-bar"><i></i></span><span class="lamp-val"></span>`;
+      this.lampsEl.appendChild(row);
+      return { row, fill: row.querySelector('i'), val: row.querySelector('.lamp-val'), key: '' };
+    });
+    // terrain: 2 px per metre, colour by surface height, sand on edges
+    const [x0, x1, z0, z1] = map.bounds;
+    const W = (x1 - x0) * 2;
+    const H = (z1 - z0) * 2;
+    const c = document.createElement('canvas');
+    c.width = W;
+    c.height = H;
+    const g = c.getContext('2d');
+    const top = (x, z) => { const t = map.topsAt(x, z); return t.length ? Math.max(...t) : null; };
+    for (let j = 0; j < H; j++) {
+      for (let i = 0; i < W; i++) {
+        const x = x0 + (i + 0.5) / 2;
+        const z = z0 + (j + 0.5) / 2;
+        const h = top(x, z);
+        if (h === null) continue;
+        const edge = top(x + 1.5, z) === null || top(x - 1.5, z) === null || top(x, z + 1.5) === null || top(x, z - 1.5) === null;
+        g.fillStyle = h >= 10 ? '#6B4A2F' : h % 3 !== 0 ? '#8a6a45' : edge ? '#C9B48A' : ['#2F5D50', '#3f7563', '#518f7a'][h / 3] ?? '#2F5D50';
+        g.fillRect(i, j, 1, 1);
+      }
+    }
+    this.terrain = { img: c, x0, z0 };
+  }
+
+  toast(text, kind = 'good') {
+    const d = document.createElement('div');
+    d.className = 'toast ' + kind;
+    d.textContent = text;
+    this.toastsEl.appendChild(d);
+    while (this.toastsEl.children.length > 4) this.toastsEl.firstChild.remove();
+    setTimeout(() => d.remove(), 2500);
+  }
+
+  /** Heading-up minimap: the camera's forward direction is "up". Redrawn at ~12 Hz. */
+  drawMap(game, yawDeg) {
+    const now = performance.now();
+    if (now - this.mapAt < 80 || !this.terrain) return;
+    this.mapAt = now;
+    const ctx = this.mapCtx;
+    const S = this.mapEl.width;
+    const R = S / 2;
+    const range = 42; // metres from the centre to the rim
+    const k = R / range;
+    const th = (yawDeg * Math.PI) / 180;
+    const cs = Math.cos(th);
+    const sn = Math.sin(th);
+    const p = game.p.pos;
+    // world (x,z) -> screen: right = -dx cos + dz sin, up = dx sin + dz cos
+    const sx = (x, z) => R + (-(x - p[0]) * cs + (z - p[2]) * sn) * k;
+    const sy = (x, z) => R - ((x - p[0]) * sn + (z - p[2]) * cs) * k;
+    const cb = document.body.classList.contains('cb');
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, S, S);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(R, R, R - 1, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.fillStyle = '#12384A';
+    ctx.fillRect(0, 0, S, S);
+    // terrain image (2 px per metre)
+    ctx.setTransform(-cs * k / 2, -sn * k / 2, sn * k / 2, -cs * k / 2, R, R);
+    ctx.drawImage(this.terrain.img, (this.terrain.x0 - p[0]) * 2, (this.terrain.z0 - p[2]) * 2);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    const t = this.tuning;
+    const low = t.low_fuel_threshold * 60;
+    const blink = ((game.simTick / 30) | 0) % 2 === 0;
+    // motes and charms
+    ctx.fillStyle = '#FFE58A';
+    for (const m of game.motes) ctx.fillRect(sx(m.pos[0], m.pos[2]) - 1.2, sy(m.pos[0], m.pos[2]) - 1.2, 2.4, 2.4);
+    ctx.fillStyle = '#C8102E';
+    for (const c of game.charms) if (c.available) ctx.fillRect(sx(c.pos[0], c.pos[2]) - 3, sy(c.pos[0], c.pos[2]) - 3, 6, 6);
+    // lanterns: safe zone, state, fuel arc
+    for (const l of game.lanterns) {
+      const x = sx(l.pos[0], l.pos[2]);
+      const y = sy(l.pos[0], l.pos[2]);
+      if (l.lit && l.fuel >= low) {
+        ctx.fillStyle = 'rgba(255,179,71,0.16)';
+        ctx.beginPath(); ctx.arc(x, y, t.safe_radius * k, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI * 2);
+      if (!l.lit) { ctx.fillStyle = '#20253a'; ctx.fill(); ctx.strokeStyle = '#8b90a3'; ctx.lineWidth = 1.5; ctx.stroke(); }
+      else { ctx.fillStyle = l.fuel < low ? (blink ? (cb ? '#ffffff' : '#FF5A5F') : '#5b3a3a') : '#FFB347'; ctx.fill(); }
+      if (l.lit) {
+        ctx.strokeStyle = '#FFE9B0'; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(x, y, 8, -Math.PI / 2, -Math.PI / 2 + 2 * Math.PI * Math.min(1, l.fuel / (t.fuel_max * 60))); ctx.stroke();
+      }
+    }
+    // shades (drain: line to the lantern), drifters
+    const shadeC = cb ? '#00B3FF' : '#9b6bff';
+    for (const s of game.shades) {
+      const x = sx(s.pos[0], s.pos[2]);
+      const y = sy(s.pos[0], s.pos[2]);
+      if (s.state === 'drain') {
+        const l = game.lanterns.find((q) => q.id === s.target);
+        if (l) { ctx.strokeStyle = shadeC; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(sx(l.pos[0], l.pos[2]), sy(l.pos[0], l.pos[2])); ctx.stroke(); }
+      }
+      ctx.fillStyle = s.state === 'stunned' ? '#5d5675' : shadeC;
+      ctx.beginPath(); ctx.arc(x, y, s.state === 'chase' ? 4.5 : 3.5, 0, Math.PI * 2); ctx.fill();
+      if (s.state === 'chase') { ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke(); }
+    }
+    ctx.fillStyle = '#8FA3B8';
+    for (const d of game.drifters) ctx.fillRect(sx(d.pos[0], d.pos[2]) - 3, sy(d.pos[0], d.pos[2]) - 1.5, 6, 3);
+    // player arrow (facing relative to the camera)
+    const f = game.p.facing;
+    const ang = Math.atan2(-f[0] * cs + f[1] * sn, f[0] * sn + f[1] * cs); // angle from "up", clockwise positive
+    ctx.translate(R, R);
+    ctx.rotate(ang);
+    ctx.fillStyle = '#F5F1E6';
+    ctx.beginPath(); ctx.moveTo(0, -7); ctx.lineTo(5, 5); ctx.lineTo(0, 2); ctx.lineTo(-5, 5); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  updateLamps(game) {
+    const t = this.tuning;
+    const low = t.low_fuel_threshold * 60;
+    const draining = new Set(game.shades.filter((s) => s.state === 'drain').map((s) => s.target));
+    game.lanterns.forEach((l, i) => {
+      const r = this.lampRows[i];
+      if (!r) return;
+      const fuel = l.lit ? Math.floor(l.fuel / 60) : 0;
+      const cls = 'lamp' + (!l.lit ? (l.everLit ? ' out' : ' new') : l.fuel < low ? ' low' : '') + (draining.has(l.id) ? ' drain' : '');
+      const key = cls + fuel;
+      if (key === r.key) return;
+      r.key = key;
+      r.row.className = cls;
+      r.fill.style.width = (l.lit ? Math.min(100, (100 * l.fuel) / (t.fuel_max * 60)) : 0) + '%';
+      r.val.textContent = l.lit ? String(fuel) : l.everLit ? '' : `${l.deposited}/${t.lantern_cost}`;
+    });
   }
 
   reset() { this.cache = {}; this.promptEl.classList.add('hidden'); this.arrowEl.classList.add('hidden'); }
@@ -55,9 +200,11 @@ export class HUD {
   }
 
   /** proj(x,y,z) -> {x, y, on, behind} (pixel màn hình; đã lật khi nằm sau camera) */
-  update(game, proj) {
+  update(game, proj, yawDeg = 0) {
     const p = game.p;
     const t = this.tuning;
+    this.updateLamps(game);
+    this.drawMap(game, yawDeg);
     this.set('flames', p.flames, (v) => this.flameSlots.forEach((s, i) => s.classList.toggle('off', i >= v)));
 
     const tl = Math.max(0, game.timeLeft);
@@ -110,11 +257,16 @@ export class HUD {
       if (d <= t.interact_radius && d < bd) { bd = d; best = l; }
     }
     if (best) {
-      const text = best.lit
+      const nearlyFull = best.lit && best.fuel > (t.fuel_max - t.fuel_per_mote) * 60;
+      const text = nearlyFull
+        ? `Đèn còn đầy dầu (${Math.floor(best.fuel / 60)}/${t.fuel_max})`
+        : best.lit
         ? `E — Châm dầu (${Math.floor(best.fuel / 60)}/${t.fuel_max})`
         : `E — ${best.everLit ? 'Thắp lại' : 'Nạp ánh sáng'} (${best.deposited}/${best.everLit ? t.relight_cost : t.lantern_cost})`;
-      this.set('prompt', best.id + ':' + text, () => {
-        this.promptEl.textContent = text;
+      const empty = p.carried === 0 && !nearlyFull;
+      this.set('prompt', best.id + ':' + text + empty, () => {
+        this.promptEl.textContent = empty ? text + ' · cần đom đóm' : text;
+        this.promptEl.classList.toggle('warn', empty);
         this.promptEl.classList.remove('hidden');
       });
     } else if (this.cache.prompt) {

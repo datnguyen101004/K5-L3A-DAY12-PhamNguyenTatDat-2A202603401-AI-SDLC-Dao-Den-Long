@@ -45,6 +45,7 @@ Mã thoát: 0 thành công, 2 nếu scenario/inputs sai định dạng, 1 tham s
 `src/sim.js` (luật, thuần) · `src/maps.js` (3 bản đồ + địa hình) · `src/campaign.js` · `src/headless.js` · `web/` (three.js, UI, âm thanh) · `tests/` · `docs/spec` (tiêu chí nghiệm thu) · `docs/notes` (giả định, nhật ký AI) · `docs/proof` (bằng chứng theo phase) · `AGENTS.md` + `.claude/` (harness).
 
 ## Sáng tạo của tôi
+- Giao diện: bản đồ nhỏ xoay theo camera, bảng dầu từng đèn, thông báo sự kiện, đèn lồng Hội An, hiệu ứng phát sáng (bloom). Tất cả chỉ ở `web/`, không đổi đầu ra headless (`npm test` vẫn đạt).
 Chưa thêm cơ chế ngoài yêu cầu (ưu tiên lõi đúng). Chỉ có hiệu ứng hiển thị nhỏ trong `web/` (vòng sáng Tỏa Sáng, nhấp nháy bất tử, mũi tên chỉ đèn), không ảnh hưởng headless.
 
 ## Tài liệu

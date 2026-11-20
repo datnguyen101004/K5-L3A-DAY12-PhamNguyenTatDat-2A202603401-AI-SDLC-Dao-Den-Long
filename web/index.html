@@ -19,9 +19,12 @@
     <div id="hud-charm" class="hidden"></div>
   </div>
   <div id="hud-top-right">
-    <div id="hud-lanterns">Đèn 0/0</div>
     <div id="hud-score">0</div>
+    <div id="hud-lanterns">Đèn 0/0</div>
+    <div id="hud-lamps"></div>
   </div>
+  <canvas id="hud-map" width="176" height="176"></canvas>
+  <div id="hud-toasts"></div>
   <div id="hud-prompt" class="hidden"></div>
   <div id="hud-motes"></div>
   <div id="hud-cds">
@@ -53,7 +56,12 @@
 <div id="screen-menu" class="screen">
   <div class="panel">
     <h1 class="title">ĐẢO ĐÈN LỒNG</h1>
-    <p class="subtitle">Cùng Mây thắp sáng những ngọn đèn lồng trước bình minh</p>
+    <p class="subtitle">Giữ cho đảo còn sáng tới bình minh</p>
+    <ul class="rules">
+      <li><b>Nhặt đom đóm</b> rồi nhấn <kbd>E</kbd> cạnh đèn để thắp hoặc châm dầu</li>
+      <li>Đèn <b>cạn dầu dần</b>; Bóng Mực hút dầu những ngọn đèn yếu</li>
+      <li>Bình minh tới mà còn đủ đèn sáng là <b>thắng</b></li>
+    </ul>
     <button id="btn-play" class="btn big">Chơi</button>
     <button id="btn-settings" class="btn">Cài đặt</button>
   </div>
@@ -65,6 +73,11 @@
     <h2 id="intro-title" class="night-title"></h2>
     <p id="intro-line" class="quote"></p>
     <p class="quote-by">— Ông Đăng, người giữ đèn</p>
+    <p id="intro-goal" class="goal"></p>
+    <div class="keys">
+      <span><kbd>WASD</kbd> đi</span><span><kbd>Space</kbd> nhảy</span><span><kbd>Shift</kbd> lướt</span>
+      <span><kbd>E</kbd> thắp / châm dầu</span><span><kbd>F</kbd> Tỏa Sáng</span><span><kbd>Chuột</kbd> xoay camera</span>
+    </div>
     <button id="btn-start" class="btn big">Bắt đầu</button>
     <p class="hint">Nhấn Enter để bắt đầu</p>
   </div>
@@ -75,6 +88,7 @@
   <div class="panel">
     <h2 id="result-title" class="night-title"></h2>
     <p id="result-reason" class="quote"></p>
+    <div id="result-stats" class="stats"></div>
     <p id="result-score" class="score-line"></p>
     <p id="result-total" class="score-line gold"></p>
     <button id="btn-next" class="btn big hidden">Đêm tiếp theo</button>
@@ -128,7 +142,7 @@
   </div>
 </div>
 
-<script type="importmap">{ "imports": { "three": "/node_modules/three/build/three.module.js" } }</script>
+<script type="importmap">{ "imports": { "three": "/node_modules/three/build/three.module.js", "three/addons/": "/node_modules/three/examples/jsm/" } }</script>
 <script type="module" src="/web/main.js"></script>
 </body>
 </html>

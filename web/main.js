@@ -38,8 +38,9 @@ function applyColorblind() {
 }
 applyColorblind();
 
-// Backdrop menu: dựng sẵn đêm 1 để quay camera phía sau menu.
+// Backdrop menu: night 1 with every lantern lit, so the menu shows the island at its prettiest.
 world.buildNight(1, MAPS[1]);
+const menuGame = new Game({ seed: 1, night: 1, tuning, scenario: { random_shades: false, random_drifters: false, lanterns: MAPS[1].lanterns.map((l) => ({ id: l.id, lit: true })) } });
 
 const screens = new Screens({
   audio,
@@ -47,7 +48,7 @@ const screens = new Screens({
   onStart() { startNight(campaign.night); },
   onNext() { showIntro(campaign.night); },
   onRetry() { if (game) startNight(game.night); },
-  onMenu() { game = null; screen = 'menu'; screens.showMenu(); },
+  onMenu() { game = null; screen = 'menu'; world.buildNight(1, MAPS[1]); screens.showMenu(); },
   onResume() { resumeQueued = true; try { world.renderer.domElement.requestPointerLock(); } catch { /* ignore */ } },
   onRestart() { if (game) startNight(game.night); },
   onSettings(from) { screens.openSettings(from); },
@@ -64,13 +65,16 @@ audio.setVolume(settings.volume);
 function showIntro(night) {
   screen = 'intro';
   world.buildNight(night, MAPS[night]);
-  screens.showIntro(night, NIGHT_NAMES[night], ONG_DANG_LINES[night]);
+  const n = MAPS[night].lanterns.length;
+  const need = Math.ceil(tuning.win_ratio * n - 1e-9);
+  screens.showIntro(night, NIGHT_NAMES[night], ONG_DANG_LINES[night], `Mục tiêu: còn ít nhất ${need}/${n} đèn sáng khi trời sáng · ${tuning[`night${night}_duration_s`] / 60} phút`);
 }
 
 function startNight(night) {
   game = new Game({ seed: (Math.random() * 2 ** 31) >>> 0, night, tuning });
   world.buildNight(night, game.map);
   world.prewarm();
+  hud.setMap(game.map, game);
   yaw = 0;
   pauseQueued = false;
   resumeQueued = false;
@@ -108,19 +112,35 @@ function handleEvents(evs) {
     switch (e.name) {
       case 'mote_picked': audio.play('mote'); break;
       case 'deposit': case 'refuel': audio.play('deposit'); break;
-      case 'lantern_out': audio.play('steal'); break;
-      case 'lantern_lit': audio.play('lantern'); break;
+      case 'lantern_out': audio.play('steal'); hud.toast(`Đèn ${e.data.lantern_id} đã tắt!`, 'bad'); break;
+      case 'refuel': hud.toast(`Châm dầu ${e.data.lantern_id} → ${Math.floor(e.data.fuel)}`); break;
+      case 'lantern_lit': audio.play('lantern'); hud.toast(e.data.relight ? `Thắp lại ${e.data.lantern_id} · +${tuning.score.per_relight}` : `Thắp sáng ${e.data.lantern_id} · +${tuning.score.per_lantern}`); break;
       case 'pulse': audio.play('pulse'); break;
-      case 'player_hit': audio.play('hit'); hud.flash(); break;
+      case 'player_hit': audio.play('hit'); hud.flash(); hud.toast(e.data.by === 'fall' ? 'Rơi khỏi đảo! −1 Ngọn Lửa' : `−1 Ngọn Lửa${e.data.dropped ? ` · rơi ${e.data.dropped} đom đóm` : ''}`, 'bad'); break;
       case 'shade_spawned': audio.play('spawn'); break;
       case 'dash': audio.play('dash'); break;
-      case 'charm_picked': audio.play('charm'); break;
-      case 'drifter_steal': audio.play('steal'); break;
+      case 'drifter_steal': audio.play('steal'); hud.toast(`Gió Lạc cướp ${e.data.amount} đom đóm!`, 'bad'); break;
+      case 'charm_picked': audio.play('charm'); hud.toast('Bùa Gió: chạy nhanh, lướt liên tục 10 s'); break;
       case 'drifter_drop': audio.play('mote'); break;
       case 'paused': case 'resumed': audio.play('ui'); break;
       default: break;
     }
   }
+}
+
+// Client-only guard (headless unaffected): topping up a lantern that is above 90 fuel would spend a whole mote
+// for less than 10 fuel (ceil rule), which is never what the player wants. Hold the press back in that case.
+function refuelWouldWaste(g) {
+  const p = g.p.pos;
+  const full = tuning.fuel_max * 60;
+  let best = null;
+  let bd = Infinity;
+  for (const l of g.lanterns) {
+    if (l.lit && l.fuel >= full) continue;
+    const d = Math.hypot(p[0] - l.pos[0], p[2] - l.pos[2]);
+    if (d <= tuning.interact_radius + 1e-9 && d < bd - 1e-9) { best = l; bd = d; }
+  }
+  return !!best && best.lit && best.fuel > full - tuning.fuel_per_mote * 60;
 }
 
 // ---------- input ----------
@@ -222,7 +242,7 @@ function frame(now) {
       ],
       cam_yaw_deg: yaw,
       jump: keys.has('Space'),
-      interact: keys.has('KeyE'),
+      interact: keys.has('KeyE') && !refuelWouldWaste(game),
       pulse: keys.has('KeyF'),
       dash: keys.has('ShiftLeft') || keys.has('ShiftRight'),
       pause: false,
@@ -253,7 +273,7 @@ function frame(now) {
 
       world.sync(game, dt, now / 1000);
       world.updateCamera(game.p.pos, yaw, dt);
-      hud.update(game, (x, y, z) => world.project(x, y, z));
+      hud.update(game, (x, y, z) => world.project(x, y, z), yaw);
       if (game.state !== 'playing' && !resultShown) { resultShown = true; onGameOver(); }
     } else {
       // đang tạm dừng: logic đứng hình, chỉ cần bắt cạnh resume
@@ -264,13 +284,14 @@ function frame(now) {
         handleEvents(game.drainEvents());
       }
       world.sync(game, 0, world.lastT);
-      hud.update(game, (x, y, z) => world.project(x, y, z));
+      hud.update(game, (x, y, z) => world.project(x, y, z), yaw);
     }
     screens.setPause(game.paused && !screens.settingsOpen);
     if (game.paused && document.pointerLockElement) document.exitPointerLock();
     audio.setPaused(game.paused);
   } else {
     // menu / intro / result / dawn: camera quay chậm trên nền thế giới
+    if (screen === 'menu') world.sync(menuGame, 0, now / 1000);
     world.menuCam(now / 1000);
   }
 

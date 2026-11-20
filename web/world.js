@@ -2,6 +2,11 @@
 // Tối ưu: geometry/material dùng chung, pool theo id cho thực thể động, tối đa 6 đèn point động
 // (1 đèn của Mây + 5 đèn cho các đèn lồng đã thắp gần nhất).
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { makeTextures, makeSky, lanternGeometry, buildPlayer, shadeGeometry } from '/web/look.js';
 
 export const PAL = {
   sky: 0x0E1430, fog: 0x1B2350, grass: 0x2F5D50, sand: 0xC9B48A, wood: 0x6B4A2F,
@@ -35,13 +40,21 @@ export class World {
     this.pixelCap = Math.min(window.devicePixelRatio || 1, 1.5);
     this.renderer.setPixelRatio(Math.min(this.pixelCap, 1.25)); // adaptive quality raises it when there is headroom
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.tex = makeTextures();
     container.appendChild(this.renderer.domElement);
 
     this.scene = new THREE.Scene();
     this.scene.background = new THREE.Color(PAL.sky);
+    this.scene.add(makeSky(PAL.sky, PAL.fog));
     this.scene.fog = new THREE.Fog(PAL.fog, 55, 190);
     this.camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 700);
     this.camera.position.set(0, 6, -12);
+    // bloom: only bright things (lanterns, motes, eyes, pulse ring, moon) glow
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.addPass(new RenderPass(this.scene, this.camera));
+    this.bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.75, 0.5, 0.92);
+    this.composer.addPass(this.bloom);
+    this.composer.addPass(new OutputPass());
 
     this.ambient = new THREE.AmbientLight(0x9a90cc, 0.3);
     this.scene.add(this.ambient);
@@ -59,8 +72,9 @@ export class World {
     this.moteGeo = this.sg(new THREE.SphereGeometry(0.14, 8, 8));
     this.moteMat = this.sm(new THREE.MeshBasicMaterial({ color: PAL.mote }));
     this.haloMat = this.sm(new THREE.SpriteMaterial({ map: this.haloTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
-    this.shadeGeo = this.sg(new THREE.IcosahedronGeometry(0.75, 1));
-    this.rimGeo = this.sg(new THREE.IcosahedronGeometry(0.88, 1));
+    this.shadeGeo = this.sg(shadeGeometry());
+    this.rimGeo = this.sg(shadeGeometry().scale(1.14, 1.14, 1.14));
+    this.lanternGeo = this.sg(lanternGeometry());
     this.eyeGeo = this.sg(new THREE.SphereGeometry(0.09, 6, 6));
     this.eyeMat = this.sm(new THREE.MeshBasicMaterial({ color: PAL.rim }));
     this.rimColor = PAL.rim; // #7A3CFF, or #00B3FF in the high-contrast palette
@@ -71,6 +85,30 @@ export class World {
     this.barFillMat = this.sm(new THREE.MeshBasicMaterial({ color: PAL.lit, transparent: true, depthWrite: false }));
     this.barGeo = this.sg(new THREE.PlaneGeometry(1, 0.14));
     this.dangerColor = 0xFF5A5F; // UI warning colour, white in the high-contrast palette
+    this.glowTex = radialTex('rgba(255,214,140,0.9)', 'rgba(255,179,71,0.25)');
+    this.glowMat = this.sm(new THREE.SpriteMaterial({ map: this.glowTex, color: PAL.lit, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+    // grass tuft: three thin blades leaning outwards
+    {
+      const blade = (a) => new THREE.ConeGeometry(0.035, 0.34, 3).translate(0, 0.17, 0).rotateZ(0.35).rotateY(a).toNonIndexed();
+      const parts = [0, 2.1, 4.2].map(blade);
+      const pos = new Float32Array(parts.reduce((n, g) => n + g.attributes.position.array.length, 0));
+      let o = 0;
+      for (const g of parts) { pos.set(g.attributes.position.array, o); o += g.attributes.position.array.length; }
+      const tuft = new THREE.BufferGeometry();
+      tuft.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      tuft.computeVertexNormals();
+      this.tuftGeo = this.sg(tuft);
+    }
+    this.rockGeo = this.sg(new THREE.DodecahedronGeometry(0.35, 0));
+    this.flowerGeo = this.sg(new THREE.SphereGeometry(0.08, 6, 4).translate(0, 0.18, 0));
+    // moon (static, outside the per-night group)
+    const moon = new THREE.Mesh(new THREE.CircleGeometry(14, 32), new THREE.MeshBasicMaterial({ color: 0xf3ecd2, fog: false }));
+    moon.position.set(-260, 150, 260);
+    moon.lookAt(0, 0, 0);
+    const moonGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: radialTex('rgba(220,215,255,0.5)', 'rgba(160,150,230,0.12)'), transparent: true, depthWrite: false, fog: false, blending: THREE.AdditiveBlending }));
+    moonGlow.scale.setScalar(120);
+    moonGlow.position.copy(moon.position);
+    this.scene.add(moon, moonGlow);
     this.ribbonGeo = this.sg(new THREE.PlaneGeometry(1.3, 0.45, 6, 1));
     this.charmGeo = this.sg(new THREE.BoxGeometry(0.34, 0.5, 0.07));
     this.trimGeo = this.sg(new THREE.BoxGeometry(0.44, 0.6, 0.05));
@@ -135,6 +173,7 @@ export class World {
 
     window.addEventListener('resize', () => {
       this.renderer.setSize(window.innerWidth, window.innerHeight);
+      this.composer.setSize(window.innerWidth, window.innerHeight);
       this.camera.aspect = window.innerWidth / window.innerHeight;
       this.camera.updateProjectionMatrix();
     });
@@ -144,29 +183,7 @@ export class World {
   sm(m) { this.sharedMats.add(m); return m; }
 
   _buildPlayer() {
-    const g = new THREE.Group();
-    const tunic = new THREE.MeshStandardMaterial({ color: PAL.tunic, roughness: 0.8 });
-    const scarfM = new THREE.MeshStandardMaterial({ color: PAL.scarf, roughness: 0.7 });
-    const hatM = new THREE.MeshStandardMaterial({ color: PAL.sand, roughness: 0.95 });
-    const woodM = new THREE.MeshStandardMaterial({ color: PAL.wood, roughness: 0.9 });
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 0.65, 4, 12), tunic);
-    body.position.y = 0.72;
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.24, 14, 12), tunic);
-    head.position.y = 1.38;
-    const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.08, 8, 18), scarfM);
-    scarf.rotation.x = Math.PI / 2;
-    scarf.position.y = 1.13;
-    const hat = new THREE.Mesh(new THREE.ConeGeometry(0.62, 0.32, 20), hatM); // nón lá
-    hat.position.y = 1.63;
-    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.28, 6), woodM);
-    stick.position.set(0.4, 1.14, 0.12);
-    const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 10), new THREE.MeshBasicMaterial({ color: PAL.lit }));
-    lamp.position.set(0.4, 0.98, 0.12);
-    const light = new THREE.PointLight(0xffc070, 22, 15, 1.7);
-    light.position.set(0.4, 1.05, 0.12);
-    g.add(body, head, scarf, hat, stick, lamp, light);
-    g.userData.light = light;
-    return g;
+    return buildPlayer(this.tex, PAL);
   }
 
   /** Dựng lại toàn bộ thế giới cho một đêm (gọi khi bắt đầu màn). */
@@ -190,6 +207,7 @@ export class World {
 
     const g = this.group;
     const std = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.9, ...o });
+    const tm = (map) => new THREE.MeshStandardMaterial({ color: 0xffffff, map, roughness: 0.95 });
     const add = (m) => { g.add(m); return m; };
 
     // sao
@@ -228,29 +246,29 @@ export class World {
 
     // địa hình theo từng đêm (số liệu lấy từ MAPS)
     if (night === 1) {
-      const isl = add(new THREE.Mesh(new THREE.CylinderGeometry(40, 33, 5, 64), std(PAL.grass)));
+      const isl = add(new THREE.Mesh(new THREE.CylinderGeometry(40, 33, 5, 64), tm(this.tex.grass)));
       isl.position.y = -2.5;
-      const rim = add(new THREE.Mesh(new THREE.RingGeometry(36, 40, 64), std(PAL.sand)));
+      const rim = add(new THREE.Mesh(new THREE.RingGeometry(36, 40, 64), tm(this.tex.sand)));
       rim.rotation.x = -Math.PI / 2;
       rim.position.y = 0.02;
     } else if (night === 2) {
       for (const cx of [0, 70]) {
-        const isl = add(new THREE.Mesh(new THREE.CylinderGeometry(28, 23, 5, 48), std(PAL.grass)));
+        const isl = add(new THREE.Mesh(new THREE.CylinderGeometry(28, 23, 5, 48), tm(this.tex.grass)));
         isl.position.set(cx, -2.5, 0);
-        const rim = add(new THREE.Mesh(new THREE.RingGeometry(25, 28, 48), std(PAL.sand)));
+        const rim = add(new THREE.Mesh(new THREE.RingGeometry(25, 28, 48), tm(this.tex.sand)));
         rim.rotation.x = -Math.PI / 2;
         rim.position.set(cx, 0.02, 0);
       }
-      const deck = add(new THREE.Mesh(new THREE.BoxGeometry(18, 0.5, 4), std(PAL.wood))); // cầu tre x∈[26,44], z∈[-2,2]
+      const deck = add(new THREE.Mesh(new THREE.BoxGeometry(18, 0.5, 4), tm(this.tex.wood))); // cầu tre x∈[26,44], z∈[-2,2]
       deck.position.set(35, -0.25, 0);
       for (let i = 0; i < 9; i++) {
         const pl = add(new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.06, 3.6), std(0x7d5836)));
         pl.position.set(27 + i * 2, 0.03, 0);
       }
     } else {
-      const isl = add(new THREE.Mesh(new THREE.CylinderGeometry(45, 38, 5, 72), std(PAL.grass)));
+      const isl = add(new THREE.Mesh(new THREE.CylinderGeometry(45, 38, 5, 72), tm(this.tex.grass)));
       isl.position.y = -2.5;
-      const rim = add(new THREE.Mesh(new THREE.RingGeometry(41, 45, 72), std(PAL.sand)));
+      const rim = add(new THREE.Mesh(new THREE.RingGeometry(41, 45, 72), tm(this.tex.sand)));
       rim.rotation.x = -Math.PI / 2;
       rim.position.y = 0.02;
       // bậc 1: vành khuyên nửa z>0, r 12..24, mặt trên Y=3
@@ -259,13 +277,13 @@ export class World {
       const hole = new THREE.Path();
       hole.absarc(0, 0, 12, 0, Math.PI, true);
       shape.holes.push(hole);
-      const t1 = add(new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: 3, bevelEnabled: false }), std(PAL.grass)));
+      const t1 = add(new THREE.Mesh(new THREE.ExtrudeGeometry(shape, { depth: 3, bevelEnabled: false }), tm(this.tex.grass)));
       t1.geometry.rotateX(Math.PI / 2); // shape (x,y) -> (x, z=y); extrude z∈[0,3] -> y∈[-3,0]
       t1.position.y = 3;
       // bậc 2: đĩa r=8, mặt trên Y=6
-      const t2 = add(new THREE.Mesh(new THREE.CylinderGeometry(8, 9.5, 6, 32), std(PAL.grass)));
+      const t2 = add(new THREE.Mesh(new THREE.CylinderGeometry(8, 9.5, 6, 32), tm(this.tex.grass)));
       t2.position.y = 3;
-      const rim2 = add(new THREE.Mesh(new THREE.RingGeometry(6.8, 8, 32), std(PAL.sand)));
+      const rim2 = add(new THREE.Mesh(new THREE.RingGeometry(6.8, 8, 32), tm(this.tex.sand)));
       rim2.rotation.x = -Math.PI / 2;
       rim2.position.y = 6.02;
       // 2 dốc lên bậc 1: góc 30° và 150°, s từ 30 (Y=0) tới 24 (Y=3), rộng 3 m
@@ -273,21 +291,56 @@ export class World {
         const grp = new THREE.Group();
         grp.position.set(Math.cos(a) * 27, 0, Math.sin(a) * 27);
         grp.rotation.y = -a;
-        const ramp = new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(6, 3), 0.35, 3), std(PAL.wood));
+        const ramp = new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(6, 3), 0.35, 3), tm(this.tex.wood));
         ramp.rotation.z = -Math.atan2(3, 6);
         ramp.position.y = 1.5;
         grp.add(ramp);
         g.add(grp);
       }
       // tháp chuông trên bậc 2 (r=2, cao 8, đỉnh Y=14) + chuông vàng
-      const tower = add(new THREE.Mesh(new THREE.CylinderGeometry(2, 2.4, 8, 12), std(PAL.wood)));
+      const tower = add(new THREE.Mesh(new THREE.CylinderGeometry(2, 2.4, 8, 12), tm(this.tex.wood)));
       tower.position.y = 10;
       const roof = add(new THREE.Mesh(new THREE.ConeGeometry(2.9, 2.2, 12), std(0x54371f)));
       roof.position.y = 15.1;
-      const beam = add(new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.18, 0.18), std(PAL.wood)));
+      const beam = add(new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.18, 0.18), tm(this.tex.wood)));
       beam.position.y = 13.85;
       const bell = add(new THREE.Mesh(new THREE.ConeGeometry(0.55, 0.8, 10), std(PAL.gold, { metalness: 0.6, roughness: 0.35, emissive: PAL.gold, emissiveIntensity: 0.3 })));
       bell.position.y = 13.4;
+    }
+
+    // trang trí: cỏ, hoa, đá thấp (đi xuyên qua được nên không đặt vật cao trông như vật cản)
+    {
+      const spots = [];
+      const keepOut = [...map.lanterns.map((l) => l.pos), ...map.pads.map((p) => p.pos), map.start];
+      for (let tries = 0; spots.length < 520 && tries < 6000; tries++) {
+        const [x0, x1, z0, z1] = map.bounds;
+        const x = x0 + Math.random() * (x1 - x0);
+        const z = z0 + Math.random() * (z1 - z0);
+        const tops = map.topsAt(x, z);
+        if (!tops.length) continue;
+        const h = Math.max(...tops);
+        if (h % 3 !== 0 || h > 6) continue; // not on ramps or the tower
+        if (map.topsAt(x + 2, z).length === 0 || map.topsAt(x - 2, z).length === 0 || map.topsAt(x, z + 2).length === 0 || map.topsAt(x, z - 2).length === 0) continue; // not on the sand rim / bridge
+        if (keepOut.some((q) => Math.hypot(q[0] - x, q[2] - z) < 2.5)) continue;
+        spots.push([x, h, z]);
+      }
+      const m4 = new THREE.Matrix4();
+      const q = new THREE.Quaternion();
+      const sc = new THREE.Vector3();
+      const up = new THREE.Vector3(0, 1, 0);
+      const place = (geo, mat, list, sMin, sMax) => {
+        const im = new THREE.InstancedMesh(geo, mat, list.length);
+        list.forEach(([x, y, z], i) => {
+          q.setFromAxisAngle(up, Math.random() * Math.PI * 2);
+          sc.setScalar(sMin + Math.random() * (sMax - sMin));
+          m4.compose(tmpV.set(x, y, z), q, sc);
+          im.setMatrixAt(i, m4);
+        });
+        add(im);
+      };
+      place(this.tuftGeo, std(0x4a8a6c), spots.slice(0, 380), 0.8, 1.6);
+      place(this.flowerGeo, new THREE.MeshStandardMaterial({ color: 0xe9d9ff, emissive: 0x6f5aa8, emissiveIntensity: 0.5 }), spots.slice(380, 470), 0.8, 1.4);
+      place(this.rockGeo, std(0x5a5f6e), spots.slice(470), 0.5, 1.2);
     }
 
     // bệ nhảy (glow disc)
@@ -305,12 +358,12 @@ export class World {
     for (const l of map.lanterns) {
       const grp = new THREE.Group();
       grp.position.set(l.pos[0], l.pos[1], l.pos[2]);
-      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.13, 3.1, 8), std(PAL.wood));
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.13, 3.1, 8), tm(this.tex.wood));
       pole.position.y = 1.55;
-      const roof = new THREE.Mesh(new THREE.ConeGeometry(0.62, 0.32, 12), std(PAL.wood));
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(0.62, 0.32, 12), tm(this.tex.wood));
       roof.position.y = 3.95;
-      const cageMat = new THREE.MeshStandardMaterial({ color: PAL.unlit, roughness: 0.5 });
-      const cage = new THREE.Mesh(new THREE.SphereGeometry(0.5, 14, 12), cageMat);
+      const cageMat = new THREE.MeshStandardMaterial({ color: PAL.unlit, map: this.tex.paper, emissiveMap: this.tex.paper, roughness: 0.6, side: THREE.DoubleSide });
+      const cage = new THREE.Mesh(this.lanternGeo, cageMat);
       cage.position.y = 3.35;
       const core = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), new THREE.MeshBasicMaterial({ color: PAL.litCore }));
       core.position.y = 3.35;
@@ -342,9 +395,13 @@ export class World {
         t.rotation.z = 0.35 * (i % 2 ? 1 : -1);
         tears.add(t);
       }
-      grp.add(pole, roof, cage, core, ring, bar, tears);
+      const glow = new THREE.Sprite(this.glowMat);
+      glow.position.y = 3.35;
+      glow.scale.setScalar(3.6);
+      glow.visible = false;
+      grp.add(pole, roof, cage, core, ring, bar, tears, glow);
       g.add(grp);
-      this.lanternViews.push({ cageMat, cage, core, ring, bar, fill, tears });
+      this.lanternViews.push({ cageMat, cage, core, ring, bar, fill, tears, glow });
     }
 
     if (this.hasWind) {
@@ -450,6 +507,7 @@ export class World {
       if (l.lit) v.cage.scale.setScalar(1.18);
       else v.cage.scale.set(1, 0.8, 1);
       v.tears.visible = !l.lit;
+      v.glow.visible = l.lit && !dim;
       v.bar.visible = l.lit;
       if (l.lit) {
         const frac = Math.max(0, Math.min(1, l.fuel / fuelMax));
@@ -522,7 +580,19 @@ export class World {
       v.rim.material.opacity = rimOp;
       if (s.state === 'chase') v.grp.position.y += Math.abs(Math.sin(game.simTick * 0.2)) * 0.08;
       v.grp.scale.setScalar(scale);
-      v.grp.rotation.y = game.simTick * 0.02 * (s.state === 'chase' ? 2.2 : 1);
+      // face the target: the player when chasing/recoiling, the lantern when draining, else the walking direction
+      let fx = 0;
+      let fz = 0;
+      if (s.state === 'chase' || s.state === 'recoil') { fx = p.pos[0] - s.pos[0]; fz = p.pos[2] - s.pos[2]; }
+      else if (drainL) { fx = drainL.pos[0] - s.pos[0]; fz = drainL.pos[2] - s.pos[2]; }
+      else if (v.last) { fx = s.pos[0] - v.last[0]; fz = s.pos[2] - v.last[1]; }
+      if (Math.abs(fx) + Math.abs(fz) > 1e-4) {
+        const want = Math.atan2(fx, fz);
+        let dA = want - v.grp.rotation.y;
+        dA = Math.atan2(Math.sin(dA), Math.cos(dA));
+        v.grp.rotation.y += dA * Math.min(1, dt * 10);
+      }
+      v.last = [s.pos[0], s.pos[2]];
     }
     for (const [id, v] of this.shadeViews) if (!this.seen.has(id)) { this.group.remove(v.grp); this.group.remove(v.beam); this.shadeViews.delete(id); }
 
@@ -692,7 +762,9 @@ export class World {
   setPixelRatio(pr) {
     this.renderer.setPixelRatio(pr);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.composer.setPixelRatio(pr);
+    this.composer.setSize(window.innerWidth, window.innerHeight);
   }
 
-  render() { this.renderer.render(this.scene, this.camera); }
+  render() { this.composer.render(); }
 }

@@ -84,8 +84,9 @@ export class Screens {
   }
 
   showMenu() { this._show('menu'); this.hud.classList.add('hidden'); this.setPause(false); }
-  showIntro(night, name, line) {
+  showIntro(night, name, line, goal) {
     this._show('intro');
+    document.getElementById('intro-goal').textContent = goal;
     this.hud.classList.add('hidden');
     document.getElementById('intro-title').textContent = `Đêm ${night} · ${name}`;
     document.getElementById('intro-line').textContent = `“${line}”`;
@@ -111,6 +112,8 @@ export class Screens {
         ? 'Mây đã hết ngọn lửa trên người...'
         : `Trời đã rạng đông mà chỉ còn ${lit}/${n} đèn sáng (cần ${need}).`;
     document.getElementById('result-reason').textContent = reason;
+    document.getElementById('result-stats').innerHTML =
+      `<div><b>${lit}/${n}</b>đèn đang sáng (cần ${need})</div><div><b>${Math.max(0, game.p.flames)}</b>Ngọn Lửa còn lại</div>`;
     document.getElementById('result-score').textContent = `Điểm đêm ${game.night}: ${game.score}`;
     document.getElementById('result-total').textContent = `Tổng điểm tích lũy: ${total}`;
     document.getElementById('btn-next').classList.toggle('hidden', outcome !== 'next');
