@@ -6,6 +6,9 @@ import { World } from '/web/world.js';
 import { HUD } from '/web/hud.js';
 import { Audio } from '/web/audio.js';
 import { Screens, settings, ONG_DANG_LINES } from '/web/ui.js';
+import { runBench } from '/web/bench.js';
+import { KeyBinder, Captions, keyLabel } from '/web/a11y.js';
+import { loadBoard, renderBoard, wireForm, resetForm } from '/web/leaderboard-ui.js';
 
 const contract = await (await fetch('/game.contract.json')).json();
 const tuning = contract.tuning;
@@ -32,11 +35,30 @@ let lastCount = -1;
 let prevWindWarning = false;
 let resultShown = false;
 
+const k = (action) => keys.has(settings.keys[action]);
+const captions = new Captions(document.getElementById('hud-captions'), document.getElementById('hud-spawn-arrows'));
+
+/** Large text, reduced motion, captions + every on-screen key label follow the settings. */
+function applyA11y() {
+  document.documentElement.classList.toggle('large-text', settings.largeText);
+  document.body.classList.toggle('reduce-motion', settings.reduceMotion);
+  captions.enabled = settings.captions;
+  world.reduceMotion = settings.reduceMotion;
+  for (const el of document.querySelectorAll('[data-key]')) el.textContent = keyLabel(settings.keys[el.dataset.key]);
+  const L = (a) => keyLabel(settings.keys[a]);
+  document.getElementById('hud-help').textContent = document.getElementById('pause-help').textContent = `${L('up')}${L('left')}${L('down')}${L('right')} di chuyển · ${L('jump')} nhảy · ${L('dash')} lướt · ${L('interact')} thắp / châm dầu · ${L('pulse')} Tỏa Sáng · chuột hoặc ${L('camLeft')}/${L('camRight')} xoay camera · Esc / ${L('pause')} tạm dừng`;
+  document.getElementById('intro-keys').innerHTML = [
+    [`${L('up')}${L('left')}${L('down')}${L('right')}`, 'đi'], [L('jump'), 'nhảy'], [L('dash'), 'lướt'], [L('interact'), 'thắp / châm dầu'], [L('pulse'), 'Tỏa Sáng'], ['Chuột', 'xoay camera'],
+  ].map(([key, what]) => `<span><kbd>${key}</kbd> ${what}</span>`).join('');
+  hud.keyLabel = L;
+}
+
 function applyColorblind() {
   document.body.classList.toggle('cb', settings.colorblind);
   world.setColorblind(settings.colorblind);
 }
 applyColorblind();
+applyA11y();
 
 // Backdrop menu: night 1 with every lantern lit, so the menu shows the island at its prettiest.
 world.buildNight(1, MAPS[1]);
@@ -44,7 +66,7 @@ const menuGame = new Game({ seed: 1, night: 1, tuning, scenario: { random_shades
 
 const screens = new Screens({
   audio,
-  onPlay() { campaign = new Campaign(); showIntro(campaign.night); },
+  onPlay() { campaign = new Campaign(); campaign.seed = (Math.random() * 2 ** 31) >>> 0; showIntro(campaign.night); },
   onStart() { startNight(campaign.night); },
   onNext() { showIntro(campaign.night); },
   onRetry() { if (game) startNight(game.night); },
@@ -59,7 +81,19 @@ const screens = new Screens({
   onVolume(v) { audio.setVolume(v); },
   onSensitivity() { /* áp dụng trực tiếp qua biến settings.sensitivity */ },
   onColorblind() { applyColorblind(); },
+  onA11y() { applyA11y(); },
+  onKeysReset() { binder.reset(); },
+  async onLeaderboard() {
+    screen = 'leaderboard';
+    screens.showLeaderboard();
+    renderBoard(document.getElementById('lb-table'), await loadBoard());
+  },
 });
+const binder = new KeyBinder(document.getElementById('keybinds'), document.getElementById('bind-msg'), settings, () => { settings.save(); applyA11y(); });
+// "Enter your name" after Bình Minh, or after losing any night. Score = total of the nights won so far.
+const lbEntry = () => ({ score: campaign.total, nights_won: campaign.results.length, seed: campaign.seed });
+wireForm(document.getElementById('lb-form-result'), lbEntry);
+wireForm(document.getElementById('lb-form-dawn'), lbEntry);
 audio.setVolume(settings.volume);
 
 function showIntro(night) {
@@ -72,7 +106,9 @@ function showIntro(night) {
 
 function startNight(night) {
   lockPointer();
-  game = new Game({ seed: (Math.random() * 2 ** 31) >>> 0, night, tuning });
+  if (campaign.seed === undefined) campaign.seed = (Math.random() * 2 ** 31) >>> 0;
+  game = new Game({ seed: campaign.seed + night, night, tuning }); // reproducible from the leaderboard's seed
+  captions.reset();
   world.buildNight(night, game.map);
   world.prewarm();
   hud.setMap(game.map, game);
@@ -97,9 +133,11 @@ function onGameOver() {
     if (lastOutcome === 'dawn') {
       screen = 'dawn';
       screens.showDawn(campaign.total, campaign.results);
+      resetForm(document.getElementById('lb-form-dawn'), true);
     } else {
       screen = 'result';
       screens.showResult(game, lastOutcome, campaign.total);
+      resetForm(document.getElementById('lb-form-result'), lastOutcome === 'retry'); // a loss can be saved
     }
   }, 900);
 }
@@ -111,14 +149,15 @@ function primaryResultAction() {
 
 function handleEvents(evs) {
   for (const e of evs) {
+    captions.onEvent(e, game);
     switch (e.name) {
       case 'mote_picked': audio.play('mote'); break;
-      case 'deposit': case 'refuel': audio.play('deposit'); break;
+      case 'deposit': audio.play('deposit'); break;
       case 'lantern_out': audio.play('steal'); hud.toast(`Đèn ${e.data.lantern_id} đã tắt!`, 'bad'); break;
-      case 'refuel': hud.toast(`Châm dầu ${e.data.lantern_id} → ${Math.floor(e.data.fuel)}`); break;
+      case 'refuel': audio.play('deposit'); hud.toast(`Châm dầu ${e.data.lantern_id} → ${Math.floor(e.data.fuel)}`); break;
       case 'lantern_lit': audio.play('lantern'); hud.toast(e.data.relight ? `Thắp lại ${e.data.lantern_id} · +${tuning.score.per_relight}` : `Thắp sáng ${e.data.lantern_id} · +${tuning.score.per_lantern}`); break;
       case 'pulse': audio.play('pulse'); break;
-      case 'player_hit': audio.play('hit'); hud.flash(); hud.toast(e.data.by === 'fall' ? 'Rơi khỏi đảo! −1 Ngọn Lửa' : `−1 Ngọn Lửa${e.data.dropped ? ` · rơi ${e.data.dropped} đom đóm` : ''}`, 'bad'); break;
+      case 'player_hit': audio.play('hit'); if (!settings.reduceMotion) { hud.flash(); world.shake(); } hud.toast(e.data.by === 'fall' ? 'Rơi khỏi đảo! −1 Ngọn Lửa' : `−1 Ngọn Lửa${e.data.dropped ? ` · rơi ${e.data.dropped} đom đóm` : ''}`, 'bad'); break;
       case 'shade_spawned': audio.play('spawn'); break;
       case 'dash': audio.play('dash'); break;
       case 'drifter_steal': audio.play('steal'); hud.toast(`Gió Lạc cướp ${e.data.amount} đom đóm!`, 'bad'); break;
@@ -147,11 +186,13 @@ function refuelWouldWaste(g) {
 
 // ---------- input ----------
 addEventListener('keydown', (e) => {
-  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code)) e.preventDefault();
+  if (binder.capturing) return; // the key binder owns the keyboard while waiting for a key
+  if (e.target instanceof HTMLInputElement && e.target.type !== 'checkbox' && e.target.type !== 'range') return; // typing a name
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code) || Object.values(settings.keys).includes(e.code)) e.preventDefault();
   if (e.repeat) return;
   keys.add(e.code);
   audio.ensure(); // AudioContext chỉ chạy sau cú chỉ đầu tiên
-  if (e.code === 'Escape' || e.code === 'KeyP') {
+  if (e.code === 'Escape' || e.code === settings.keys.pause) {
     if (screens.settingsOpen) { screens.closeSettings(); if (screen === 'playing' && game && game.paused) screens.setPause(true); return; }
     if (screen === 'playing' && game) {
       if (game.paused) resumeQueued = true;
@@ -237,19 +278,16 @@ function frame(now) {
   }
 
   if (screen === 'playing' && game) {
-    if (keys.has('KeyQ')) yaw += 80 * dt * settings.sensitivity;
-    if (keys.has('KeyZ')) yaw -= 80 * dt * settings.sensitivity;
+    if (k('camLeft')) yaw += 80 * dt * settings.sensitivity;
+    if (k('camRight')) yaw -= 80 * dt * settings.sensitivity;
 
     const input = {
-      move: [
-        (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0) + (keys.has('KeyD') || keys.has('ArrowRight') ? -1 : 0),
-        (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) + (keys.has('KeyS') || keys.has('ArrowDown') ? -1 : 0),
-      ],
+      move: [(k('left') ? 1 : 0) - (k('right') ? 1 : 0), (k('up') ? 1 : 0) - (k('down') ? 1 : 0)],
       cam_yaw_deg: yaw,
-      jump: keys.has('Space'),
-      interact: keys.has('KeyE') && !refuelWouldWaste(game),
-      pulse: keys.has('KeyF'),
-      dash: keys.has('ShiftLeft') || keys.has('ShiftRight'),
+      jump: k('jump'),
+      interact: k('interact') && !refuelWouldWaste(game),
+      pulse: k('pulse'),
+      dash: k('dash'),
       pause: false,
     };
 
@@ -279,6 +317,7 @@ function frame(now) {
       world.sync(game, dt, now / 1000);
       world.updateCamera(game.p.pos, yaw, dt);
       hud.update(game, (x, y, z) => world.project(x, y, z), yaw);
+      captions.update(game, (x, y, z) => world.project(x, y, z));
       if (game.state !== 'playing' && !resultShown) { resultShown = true; onGameOver(); }
     } else {
       // đang tạm dừng: logic đứng hình, chỉ cần bắt cạnh resume
@@ -297,17 +336,24 @@ function frame(now) {
     audio.setPaused(game.paused);
   } else {
     // menu / intro / result / dawn: camera quay chậm trên nền thế giới
-    if (screen === 'menu') world.sync(menuGame, 0, now / 1000);
+    if (screen === 'menu' || screen === 'leaderboard') world.sync(menuGame, 0, now / 1000);
     world.menuCam(now / 1000);
   }
 
   world.render();
 }
 
-if (devNight >= 1 && devNight <= 3) {
-  campaign.night = devNight;
-  showIntro(devNight);
+const qs = new URLSearchParams(location.search);
+if (qs.get('bench')) {
+  // Benchmark scene (scripts/bench.mjs): no menus, no input, no adaptive resolution.
+  screens.showPlaying();
+  runBench({ world, hud, tuning, seed: Number(qs.get('seed') ?? 42), duration: Number(qs.get('duration') ?? 30), t0: Number(qs.get('t0')) || null });
 } else {
-  screens.showMenu();
+  if (devNight >= 1 && devNight <= 3) {
+    campaign.night = devNight;
+    showIntro(devNight);
+  } else {
+    screens.showMenu();
+  }
+  requestAnimationFrame(frame);
 }
-requestAnimationFrame(frame);

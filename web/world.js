@@ -36,7 +36,7 @@ const idNum = (id) => Number(String(id).replace(/\D/g, '')) || 0;
 export class World {
   constructor(container, tuning) {
     this.tuning = tuning;
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     this.pixelCap = Math.min(window.devicePixelRatio || 1, 1.5);
     this.renderer.setPixelRatio(Math.min(this.pixelCap, 1.25)); // adaptive quality raises it when there is headroom
     this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -187,7 +187,8 @@ export class World {
   }
 
   /** Dựng lại toàn bộ thế giới cho một đêm (gọi khi bắt đầu màn). */
-  buildNight(night, map) {
+  /** opts.decor=false: no grass/flowers/pebbles (benchmark scene must not include creative extras). */
+  buildNight(night, map, opts = {}) {
     this.focus = null; // snap the camera to the player on the next frame
     this.scene.remove(this.group);
     this.group.traverse((o) => {
@@ -197,6 +198,7 @@ export class World {
     this.group = new THREE.Group();
     this.scene.add(this.group);
     this.moteViews.clear(); this.shadeViews.clear(); this.drifterViews.clear(); this.charmViews.clear();
+    this._buildCrowds(256, 128);
     this.lanternViews = []; this.clouds = []; this.padMeshes = [];
     this.night = night;
     this.hasWind = !!map.wind;
@@ -309,7 +311,7 @@ export class World {
     }
 
     // trang trí: cỏ, hoa, đá thấp (đi xuyên qua được nên không đặt vật cao trông như vật cản)
-    {
+    if (opts.decor !== false) {
       const spots = [];
       const keepOut = [...map.lanterns.map((l) => l.pos), ...map.pads.map((p) => p.pos), map.start];
       for (let tries = 0; spots.length < 520 && tries < 6000; tries++) {
@@ -411,41 +413,49 @@ export class World {
     }
   }
 
-  _moteView(id) {
-    let v = this.moteViews.get(id);
-    if (!v) {
-      const grp = new THREE.Group();
-      const mesh = new THREE.Mesh(this.moteGeo, this.moteMat);
-      const halo = new THREE.Sprite(this.haloMat);
-      halo.scale.setScalar(1.5);
-      grp.add(mesh, halo);
-      this.group.add(grp);
-      v = { grp, mesh, halo };
-      this.moteViews.set(id, v);
-    }
-    return v;
+  /** Shades and motes are drawn with InstancedMesh (a handful of draw calls for hundreds of entities). */
+  _buildCrowds(shadeCap, moteCap) {
+    const inst = (geo, mat, n) => {
+      const m = new THREE.InstancedMesh(geo, mat, n);
+      m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      m.count = 0;
+      m.frustumCulled = false;
+      this.group.add(m);
+      return m;
+    };
+    const white = new THREE.Color(1, 1, 1);
+    this.shBody = inst(this.shadeGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55 }), shadeCap);
+    this.shRim = inst(this.rimGeo, new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8, side: THREE.BackSide, depthWrite: false }), shadeCap);
+    this.shEyes = inst(this.eyeGeo, this.eyeMat, shadeCap * 2);
+    for (const m of [this.shBody, this.shRim]) { m.setColorAt(0, white); m.instanceColor.setUsage(THREE.DynamicDrawUsage); }
+    this.shadeCap = shadeCap;
+    this.moteCore = inst(this.moteGeo, this.moteMat, moteCap);
+    this.moteCap = moteCap;
+    const hp = new THREE.BufferGeometry();
+    hp.setAttribute('position', new THREE.BufferAttribute(new Float32Array(moteCap * 3), 3).setUsage(THREE.DynamicDrawUsage));
+    this.moteHalo = new THREE.Points(hp, new THREE.PointsMaterial({ map: this.haloTex, size: 1.5, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, color: 0xffffff }));
+    this.moteHalo.frustumCulled = false;
+    this.group.add(this.moteHalo);
+    this.beams = []; // drain beams, pooled
+    this.beamMat = new THREE.MeshBasicMaterial({ color: this.rimColor, transparent: true, opacity: 0.6, depthWrite: false });
   }
 
-  _shadeView(id) {
-    let v = this.shadeViews.get(id);
-    if (!v) {
-      const grp = new THREE.Group();
-      const bodyMat = new THREE.MeshStandardMaterial({ color: PAL.shade, roughness: 0.55 });
-      const body = new THREE.Mesh(this.shadeGeo, bodyMat);
-      const rim = new THREE.Mesh(this.rimGeo, new THREE.MeshBasicMaterial({ color: this.rimColor, transparent: true, opacity: 0.55, side: THREE.BackSide, depthWrite: false }));
-      const beam = new THREE.Mesh(this.beamGeo, new THREE.MeshBasicMaterial({ color: this.rimColor, transparent: true, opacity: 0.6, depthWrite: false }));
-      beam.visible = false;
-      this.group.add(beam);
-      const e1 = new THREE.Mesh(this.eyeGeo, this.eyeMat);
-      e1.position.set(-0.22, 0.12, 0.62);
-      const e2 = new THREE.Mesh(this.eyeGeo, this.eyeMat);
-      e2.position.set(0.22, 0.12, 0.62);
-      grp.add(body, rim, e1, e2);
-      this.group.add(grp);
-      v = { grp, bodyMat, rim, beam, startTicks: 0 };
-      this.shadeViews.set(id, v);
+  _beam(i) {
+    while (this.beams.length <= i) {
+      const b = new THREE.Mesh(this.beamGeo, this.beamMat);
+      b.visible = false;
+      this.group.add(b);
+      this.beams.push(b);
     }
-    return v;
+    return this.beams[i];
+  }
+
+  /** Grows an instanced crowd when a scene has more entities than planned (rare: scenario files). */
+  _ensureCaps(nShades, nMotes) {
+    if (nShades <= this.shadeCap && nMotes <= this.moteCap) return;
+    for (const o of [this.shBody, this.shRim, this.shEyes, this.moteCore, this.moteHalo]) { this.group.remove(o); if (o.material !== this.eyeMat && o.material !== this.moteMat) o.material.dispose(); if (o === this.moteHalo) o.geometry.dispose(); }
+    for (const b of this.beams) this.group.remove(b);
+    this._buildCrowds(Math.max(this.shadeCap, 2 ** Math.ceil(Math.log2(nShades))), Math.max(this.moteCap, 2 ** Math.ceil(Math.log2(nMotes))));
   }
 
   _drifterView(id) {
@@ -529,57 +539,73 @@ export class World {
     }
     this.ambient.intensity = 0.15 + 0.55 * (n ? lit / n : 0);
 
-    // đốm sáng (mote)
-    this.seen.clear();
-    for (const m of game.motes) {
-      const v = this._moteView(m.id);
-      this.seen.add(m.id);
-      const bob = Math.sin((game.simTick + idNum(m.id) * 7) * 0.09) * 0.12;
-      v.grp.position.set(m.pos[0], m.pos[1] + 0.25 + bob, m.pos[2]);
-      const low = m.ttl !== null && m.ttl < 120;
-      v.grp.visible = !low || (game.simTick >> 2) % 2 === 0; // đốm rơi nhấp nháy khi sắp hết hạn
-      const s = low ? 0.75 : 1;
-      v.mesh.scale.setScalar(s);
-      v.halo.scale.setScalar(1.5 * s);
-    }
-    for (const [id, v] of this.moteViews) if (!this.seen.has(id)) { this.group.remove(v.grp); this.moteViews.delete(id); }
+    this._ensureCaps(game.shades.length, game.motes.length);
+    const m4 = this._m4 || (this._m4 = new THREE.Matrix4());
+    const q = this._q || (this._q = new THREE.Quaternion());
+    const sc = this._sc || (this._sc = new THREE.Vector3());
+    const col = this._col || (this._col = new THREE.Color());
+    const up = this._up || (this._up = new THREE.Vector3(0, 1, 0));
 
-    // bóng ma
+    // đốm sáng (mote): instanced cores + one Points draw for the halos
+    {
+      const halo = this.moteHalo.geometry.attributes.position;
+      let n = 0;
+      for (const m of game.motes) {
+        const low = m.ttl !== null && m.ttl < 120;
+        if (low && (game.simTick >> 2) % 2 === 1) continue; // dropped motes flicker before they vanish
+        const bob = Math.sin((game.simTick + idNum(m.id) * 7) * 0.09) * 0.12;
+        const y = m.pos[1] + 0.25 + bob;
+        m4.makeScale(low ? 0.75 : 1, low ? 0.75 : 1, low ? 0.75 : 1).setPosition(m.pos[0], y, m.pos[2]);
+        this.moteCore.setMatrixAt(n, m4);
+        halo.setXYZ(n, m.pos[0], y, m.pos[2]);
+        n++;
+      }
+      this.moteCore.count = n;
+      this.moteCore.instanceMatrix.needsUpdate = true;
+      this.moteHalo.geometry.setDrawRange(0, n);
+      halo.needsUpdate = true;
+    }
+
+    // bóng ma (instanced): body colour, rim brightness, eyes; per-shade facing kept in shadeViews
     this.seen.clear();
-    for (const s of game.shades) {
-      const v = this._shadeView(s.id);
+    let beamN = 0;
+    const rimBase = new THREE.Color(this.rimColor);
+    game.shades.forEach((s, i) => {
+      let v = this.shadeViews.get(s.id);
+      if (!v) { v = { rot: 0, last: null, startTicks: 0 }; this.shadeViews.set(s.id, v); }
       this.seen.add(s.id);
-      v.grp.position.set(s.pos[0], s.pos[1], s.pos[2]);
       let scale = 1;
       let color = PAL.shade;
-      let rimOp = 0.55;
+      let rimK = 0.6;
+      let y = s.pos[1];
       if (s.state === 'spawning') {
         if (!v.startTicks) v.startTicks = s.ticks || 1;
         scale = 0.2 + 0.8 * Math.max(0, 1 - s.ticks / v.startTicks);
-        rimOp = 0.9;
+        rimK = 1;
       } else if (s.state === 'stunned') {
         scale = 0.62;
         color = PAL.stunned;
-        rimOp = 0.15;
+        rimK = 0.2;
       } else if (s.state === 'recoil') {
         color = s.ticks > 45 ? this.rimColor : PAL.shade;
-        rimOp = 0.95;
+        rimK = 1;
       } else if (s.state === 'drain') {
         scale = 1 + 0.1 * Math.sin(game.simTick * 0.4);
-        rimOp = 0.95;
+        rimK = 1;
+      } else if (s.state === 'chase') {
+        y += Math.abs(Math.sin(game.simTick * 0.2)) * 0.08;
+        rimK = 0.85;
       }
-      const drainL = s.state === 'drain' ? game.lanterns.find((l) => l.id === s.target) : null;
-      v.beam.visible = !!drainL;
+      let drainL = null;
+      if (s.state === 'drain') for (const l of game.lanterns) if (l.id === s.target) drainL = l;
       if (drainL) {
+        const b = this._beam(beamN++);
+        b.visible = true;
         tmpV.set(drainL.pos[0], drainL.pos[1] + 3.35, drainL.pos[2]);
-        v.beam.position.copy(v.grp.position).lerp(tmpV, 0.5);
-        v.beam.scale.set(1, 1, v.grp.position.distanceTo(tmpV));
-        v.beam.lookAt(tmpV);
+        b.position.set(s.pos[0], y, s.pos[2]).lerp(tmpV, 0.5);
+        b.scale.set(1, 1, Math.hypot(tmpV.x - s.pos[0], tmpV.y - y, tmpV.z - s.pos[2]));
+        b.lookAt(tmpV);
       }
-      v.bodyMat.color.setHex(color);
-      v.rim.material.opacity = rimOp;
-      if (s.state === 'chase') v.grp.position.y += Math.abs(Math.sin(game.simTick * 0.2)) * 0.08;
-      v.grp.scale.setScalar(scale);
       // face the target: the player when chasing/recoiling, the lantern when draining, else the walking direction
       let fx = 0;
       let fz = 0;
@@ -587,14 +613,38 @@ export class World {
       else if (drainL) { fx = drainL.pos[0] - s.pos[0]; fz = drainL.pos[2] - s.pos[2]; }
       else if (v.last) { fx = s.pos[0] - v.last[0]; fz = s.pos[2] - v.last[1]; }
       if (Math.abs(fx) + Math.abs(fz) > 1e-4) {
-        const want = Math.atan2(fx, fz);
-        let dA = want - v.grp.rotation.y;
+        let dA = Math.atan2(fx, fz) - v.rot;
         dA = Math.atan2(Math.sin(dA), Math.cos(dA));
-        v.grp.rotation.y += dA * Math.min(1, dt * 10);
+        v.rot += dA * Math.min(1, dt * 10);
       }
-      v.last = [s.pos[0], s.pos[2]];
-    }
-    for (const [id, v] of this.shadeViews) if (!this.seen.has(id)) { this.group.remove(v.grp); this.group.remove(v.beam); this.shadeViews.delete(id); }
+      if (!v.last) v.last = [0, 0];
+      v.last[0] = s.pos[0];
+      v.last[1] = s.pos[2];
+      q.setFromAxisAngle(up, v.rot);
+      sc.setScalar(scale);
+      m4.compose(tmpV.set(s.pos[0], y, s.pos[2]), q, sc);
+      this.shBody.setMatrixAt(i, m4);
+      this.shRim.setMatrixAt(i, m4);
+      this.shBody.setColorAt(i, col.setHex(color));
+      this.shRim.setColorAt(i, col.copy(rimBase).multiplyScalar(rimK));
+      // eyes: local offsets (±0.22, 0.12, 0.62) rotated with the body
+      const cs = Math.cos(v.rot);
+      const sn = Math.sin(v.rot);
+      for (let k = 0; k < 2; k++) {
+        const ex = (k ? 0.22 : -0.22) * scale;
+        const ez = 0.62 * scale;
+        m4.makeScale(scale, scale, scale).setPosition(s.pos[0] + ex * cs + ez * sn, y + 0.12 * scale, s.pos[2] - ex * sn + ez * cs);
+        this.shEyes.setMatrixAt(i * 2 + k, m4);
+      }
+    });
+    const ns = game.shades.length;
+    this.shBody.count = ns;
+    this.shRim.count = ns;
+    this.shEyes.count = ns * 2;
+    for (const m of [this.shBody, this.shRim, this.shEyes]) m.instanceMatrix.needsUpdate = true;
+    if (ns) { this.shBody.instanceColor.needsUpdate = true; this.shRim.instanceColor.needsUpdate = true; }
+    for (let i = beamN; i < this.beams.length; i++) this.beams[i].visible = false;
+    for (const id of this.shadeViews.keys()) if (!this.seen.has(id)) this.shadeViews.delete(id);
 
     // Gió Lạc (drifter)
     this.seen.clear();
@@ -703,7 +753,24 @@ export class World {
     this.focus.z += (pPos[2] - this.focus.z) * k;
     this.focus.y += (pPos[1] - this.focus.y) * (1 - Math.exp(-dt * 8)); // gentler vertically (jumps, pads)
     this.camera.position.set(this.focus.x - fx * 7.5, this.focus.y + 3.4, this.focus.z - fz * 7.5);
+    const left = (this.shakeUntil || 0) - performance.now();
+    if (left > 0 && !this.reduceMotion) {
+      const a = 0.18 * (left / 280);
+      this.camera.position.x += (Math.random() - 0.5) * a;
+      this.camera.position.y += (Math.random() - 0.5) * a;
+    }
     this.camera.lookAt(this.focus.x + fx * 2, this.focus.y + 1.3, this.focus.z + fz * 2);
+  }
+
+  /** Short camera shake after a hit; never with reduced motion. */
+  shake() {
+    if (!this.reduceMotion) this.shakeUntil = performance.now() + 280;
+  }
+
+  /** Benchmark camera: fixed position, looking at the origin. */
+  benchCam(pos) {
+    this.camera.position.set(pos[0], pos[1], pos[2]);
+    this.camera.lookAt(0, 0, 0);
   }
 
   /** Camera quay chậm cho menu / màn hình chờ (nền 3D phía sau). */
@@ -731,18 +798,19 @@ export class World {
   /** Compile every shader variant up front. Otherwise the first lit lantern, shade, drifter or charm compiles
    *  its material in the middle of play, which shows up as a stall. */
   prewarm() {
-    const sv = this._shadeView('__warm');
+    for (const m of [this.shBody, this.shRim, this.shEyes, this.moteCore]) m.count = 1;
+    this.moteHalo.geometry.setDrawRange(0, 1);
+    this._beam(0).visible = true;
     const dv = this._drifterView('__warm');
     const cv = this._charmView('__warm');
     const hidden = [];
     this.scene.traverse((o) => { if (!o.visible) { hidden.push(o); o.visible = true; } });
     this.renderer.compile(this.scene, this.camera);
     for (const o of hidden) o.visible = false;
-    this.group.remove(sv.grp);
+    for (const m of [this.shBody, this.shRim, this.shEyes, this.moteCore]) m.count = 0;
+    this.moteHalo.geometry.setDrawRange(0, 0);
     this.group.remove(dv.mesh);
     this.group.remove(cv.grp);
-    this.group.remove(sv.beam);
-    this.shadeViews.delete('__warm');
     this.drifterViews.delete('__warm');
     this.charmViews.delete('__warm');
   }
@@ -752,10 +820,7 @@ export class World {
     this.rimColor = on ? 0x00B3FF : PAL.rim;
     this.dangerColor = on ? 0xFFFFFF : 0xFF5A5F;
     this.eyeMat.color.setHex(this.rimColor);
-    for (const v of this.shadeViews.values()) {
-      v.rim.material.color.setHex(this.rimColor);
-      v.beam.material.color.setHex(this.rimColor);
-    }
+    if (this.beamMat) this.beamMat.color.setHex(this.rimColor); // rim colour is applied per instance every frame
   }
 
   /** Render-resolution scale (adaptive quality). */

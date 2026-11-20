@@ -52,7 +52,10 @@ const byId = (a, b) => idNum(a.id) - idNum(b.id) || (a.id < b.id ? -1 : a.id > b
 
 export class Game {
   /** @param {{seed?:number, night?:number, tuning:object, scenario?:object}} o */
-  constructor({ seed = 0, night = 1, tuning, scenario = {} }) {
+  /** bench: Ticket-04 benchmark scene. No spawns, damage, pickup, fuel loss or end of night; everything else (shade
+   *  AI, movement, rendering inputs) runs normally. Not reachable from the headless CLI, so contract output is unchanged. */
+  constructor({ seed = 0, night = 1, tuning, scenario = {}, bench = false }) {
+    this.bench = bench;
     this.t = tuning;
     this.night = night;
     this.map = MAPS[night];
@@ -304,6 +307,7 @@ export class Game {
     // S10: scheduled spawns
     this.spawns();
     // S11: win / loss
+    if (this.bench) return;
     if (p.flames <= 0) this.finish('lost', 'no_flames');
     else if (this.timeLeft <= 1e-9) {
       const need = Math.ceil(t.win_ratio * this.lanterns.length - 1e-9);
@@ -323,6 +327,7 @@ export class Game {
 
   // S2: lantern fuel (decay + draining shades), then empty lanterns go out
   updateFuel() {
+    if (this.bench) return;
     for (const l of this.lanterns) if (l.lit) l.fuel -= this.fuelDecay;
     const drains = [];
     for (const s of this.shades) {
@@ -511,6 +516,7 @@ export class Game {
   }
 
   pickup() {
+    if (this.bench) return;
     if (!this.active) return;
     const p = this.p;
     for (let i = 0; i < this.motes.length && p.carried < this.capacity; ) {
@@ -899,6 +905,7 @@ export class Game {
 
   // ---------- S9 ----------
   contact() {
+    if (this.bench) return;
     const p = this.p;
     const t = this.t;
     if (!this.active) return;
@@ -938,6 +945,7 @@ export class Game {
 
   // ---------- S10 ----------
   spawns() {
+    if (this.bench) return;
     const p = this.p;
     const m = this.map;
     if (this.randomMotes && this.simTick % MOTE_PERIOD === 0 && this.motes.length < MOTE_CAP) {

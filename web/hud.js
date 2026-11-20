@@ -261,8 +261,8 @@ export class HUD {
       const text = nearlyFull
         ? `Đèn còn đầy dầu (${Math.floor(best.fuel / 60)}/${t.fuel_max})`
         : best.lit
-        ? `E — Châm dầu (${Math.floor(best.fuel / 60)}/${t.fuel_max})`
-        : `E — ${best.everLit ? 'Thắp lại' : 'Nạp ánh sáng'} (${best.deposited}/${best.everLit ? t.relight_cost : t.lantern_cost})`;
+        ? `${this.keyLabel ? this.keyLabel('interact') : 'E'} — Châm dầu (${Math.floor(best.fuel / 60)}/${t.fuel_max})`
+        : `${this.keyLabel ? this.keyLabel('interact') : 'E'} — ${best.everLit ? 'Thắp lại' : 'Nạp ánh sáng'} (${best.deposited}/${best.everLit ? t.relight_cost : t.lantern_cost})`;
       const empty = p.carried === 0 && !nearlyFull;
       this.set('prompt', best.id + ':' + text + empty, () => {
         this.promptEl.textContent = empty ? text + ' · cần đom đóm' : text;

@@ -25,6 +25,8 @@
   </div>
   <canvas id="hud-map" width="176" height="176"></canvas>
   <div id="hud-toasts"></div>
+  <div id="hud-captions" aria-live="polite"></div>
+  <div id="hud-spawn-arrows"></div>
   <div id="hud-lockhint" class="hidden">Nhấp chuột vào màn hình để giữ chuột trong game</div>
   <div id="hud-prompt" class="hidden"></div>
   <div id="hud-motes"></div>
@@ -32,25 +34,25 @@
     <div class="cd" id="cd-jump">
       <div class="cd-fill"></div>
       <span class="cd-label">Nhảy</span>
-      <span class="cd-key">Space</span>
+      <span class="cd-key" data-key="jump">Space</span>
       <span class="cd-time" id="cd-jump-time"></span>
     </div>
     <div class="cd" id="cd-dash">
       <div class="cd-fill"></div>
       <span class="cd-label">Lướt</span>
-      <span class="cd-key">Shift</span>
+      <span class="cd-key" data-key="dash">Shift</span>
       <span class="cd-time" id="cd-dash-time"></span>
     </div>
     <div class="cd" id="cd-pulse">
       <div class="cd-fill"></div>
       <span class="cd-label">Tỏa Sáng</span>
-      <span class="cd-key">F</span>
+      <span class="cd-key" data-key="pulse">F</span>
       <span class="cd-time" id="cd-pulse-time"></span>
     </div>
   </div>
   <div id="hud-arrow" class="hidden"><div class="arrow-head"></div></div>
   <div id="hud-flash"></div>
-  <div id="hud-help">WASD di chuyển · Space nhảy · Shift lướt · E nạp / châm dầu đèn · F tỏa sáng · Nhấp vào màn hình rồi rê chuột (hoặc Q/Z) để xoay camera · Esc tạm dừng</div>
+  <div id="hud-help"></div>
 </div>
 
 <!-- Màn hình chính -->
@@ -59,11 +61,12 @@
     <h1 class="title">ĐẢO ĐÈN LỒNG</h1>
     <p class="subtitle">Giữ cho đảo còn sáng tới bình minh</p>
     <ul class="rules">
-      <li><b>Nhặt đom đóm</b> rồi nhấn <kbd>E</kbd> cạnh đèn để thắp hoặc châm dầu</li>
+      <li><b>Nhặt đom đóm</b> rồi nhấn <kbd data-key="interact">E</kbd> cạnh đèn để thắp hoặc châm dầu</li>
       <li>Đèn <b>cạn dầu dần</b>; Bóng Mực hút dầu những ngọn đèn yếu</li>
       <li>Bình minh tới mà còn đủ đèn sáng là <b>thắng</b></li>
     </ul>
     <button id="btn-play" class="btn big">Chơi</button>
+    <button id="btn-leaderboard" class="btn">Bảng xếp hạng</button>
     <button id="btn-settings" class="btn">Cài đặt</button>
   </div>
 </div>
@@ -75,10 +78,7 @@
     <p id="intro-line" class="quote"></p>
     <p class="quote-by">— Ông Đăng, người giữ đèn</p>
     <p id="intro-goal" class="goal"></p>
-    <div class="keys">
-      <span><kbd>WASD</kbd> đi</span><span><kbd>Space</kbd> nhảy</span><span><kbd>Shift</kbd> lướt</span>
-      <span><kbd>E</kbd> thắp / châm dầu</span><span><kbd>F</kbd> Tỏa Sáng</span><span><kbd>Chuột</kbd> xoay camera</span>
-    </div>
+    <div class="keys" id="intro-keys"></div>
     <button id="btn-start" class="btn big">Bắt đầu</button>
     <p class="hint">Nhấn Enter để bắt đầu</p>
   </div>
@@ -92,6 +92,11 @@
     <div id="result-stats" class="stats"></div>
     <p id="result-score" class="score-line"></p>
     <p id="result-total" class="score-line gold"></p>
+    <form class="lb-form hidden" id="lb-form-result" autocomplete="off">
+      <label for="lb-form-result-name">Lưu điểm vào bảng xếp hạng</label>
+      <div class="lb-row"><input id="lb-form-result-name" maxlength="12" placeholder="Tên (3-12 ký tự)" spellcheck="false"><button type="submit" class="btn">Lưu</button></div>
+      <p class="lb-msg"></p>
+    </form>
     <button id="btn-next" class="btn big hidden">Đêm tiếp theo</button>
     <button id="btn-retry" class="btn big hidden">Chơi lại Đêm</button>
     <button id="btn-tomenu" class="btn">Về menu</button>
@@ -105,7 +110,21 @@
     <h1 class="title">BÌNH MINH</h1>
     <p id="dawn-text" class="quote"></p>
     <p id="dawn-total" class="score-line gold"></p>
+    <form class="lb-form hidden" id="lb-form-dawn" autocomplete="off">
+      <label for="lb-form-dawn-name">Lưu điểm vào bảng xếp hạng</label>
+      <div class="lb-row"><input id="lb-form-dawn-name" maxlength="12" placeholder="Tên (3-12 ký tự)" spellcheck="false"><button type="submit" class="btn">Lưu</button></div>
+      <p class="lb-msg"></p>
+    </form>
     <button id="btn-dawn-menu" class="btn big">Về menu</button>
+  </div>
+</div>
+
+<!-- Bảng xếp hạng -->
+<div id="screen-leaderboard" class="screen hidden">
+  <div class="panel wide">
+    <h2 class="night-title">Bảng xếp hạng</h2>
+    <table id="lb-table" class="lb-table"></table>
+    <button id="btn-lb-back" class="btn big">Quay lại</button>
   </div>
 </div>
 
@@ -117,6 +136,7 @@
     <button id="btn-restart" class="btn">Chơi lại Đêm</button>
     <button id="btn-pause-settings" class="btn">Cài đặt</button>
     <button id="btn-pause-menu" class="btn">Về menu</button>
+    <p id="pause-help" class="hint"></p>
   </div>
 </div>
 
@@ -139,6 +159,22 @@
       <input type="checkbox" id="set-cb">
       <span class="setting-val" id="cb-val"></span>
     </div>
+    <div class="setting-row">
+      <label for="set-captions">Phụ đề và chỉ báo hình ảnh</label>
+      <input type="checkbox" id="set-captions">
+    </div>
+    <div class="setting-row">
+      <label for="set-motion">Giảm chuyển động (tắt rung camera, chớp màn hình)</label>
+      <input type="checkbox" id="set-motion">
+    </div>
+    <div class="setting-row">
+      <label for="set-large">Chữ lớn (×1.25)</label>
+      <input type="checkbox" id="set-large">
+    </div>
+    <h3 class="sub">Phím điều khiển</h3>
+    <div id="keybinds"></div>
+    <p id="bind-msg" class="bind-msg"></p>
+    <button id="btn-keys-reset" class="btn">Khôi phục phím mặc định</button>
     <button id="btn-settings-back" class="btn big">Quay lại</button>
   </div>
 </div>

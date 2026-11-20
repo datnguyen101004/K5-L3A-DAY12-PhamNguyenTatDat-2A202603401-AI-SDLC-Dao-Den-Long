@@ -1,6 +1,6 @@
 {
   "name": "dao-den-long",
-  "version": "1.0.0-phase1",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "Dao Den Long: 3D lantern game with a deterministic headless simulation",
@@ -12,5 +12,8 @@
   "dependencies": {
     "three": "^0.170.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^45.4.1"
+  }
 }
