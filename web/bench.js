@@ -24,10 +24,10 @@ export function runBench({ world, hud, tuning, seed, duration, t0 }) {
   window.__benchState = 'warmup';
 
   function frame(now) {
-    if (start === null) {
+    const first = start === null;
+    if (first) {
       start = now;
       last = now;
-      firstFrameEpoch = Date.now();
     }
     const dtMs = now - last;
     last = now;
@@ -56,6 +56,7 @@ export function runBench({ world, hud, tuning, seed, duration, t0 }) {
     world.benchCam(orbitCamera(t));
     hud.update(game, (x, y, z) => world.project(x, y, z), 0);
     world.render();
+    if (first) firstFrameEpoch = Date.now(); // first frame of the bench scene has been drawn
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);

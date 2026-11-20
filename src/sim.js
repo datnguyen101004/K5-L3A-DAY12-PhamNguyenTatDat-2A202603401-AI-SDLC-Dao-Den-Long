@@ -854,12 +854,12 @@ export class Game {
         }
         s.state = 'wander';
       }
-      if (s.state === 'wander' && d <= 12) s.state = 'chase';
+      if (s.state === 'wander' && d <= 12 && !this.bench) s.state = 'chase'; // bench: crowd keeps wandering
       else if (s.state === 'chase' && d > 18) s.state = 'wander';
       const sp = this.speedShade / TICK_RATE;
       if (s.state === 'chase') {
         this.chase(s, p, d, sp);
-      } else if (!this.seekLantern(s, sp)) {
+      } else if (this.bench || !this.seekLantern(s, sp)) {
         const [wx, wz] = this.wander(s, this.speedShade / 2);
         if (!this.shadeStep(s, wx / TICK_RATE, wz / TICK_RATE)) s.wanderT = 0;
       }

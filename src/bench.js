@@ -40,10 +40,11 @@ export function benchScenario(seed = 42) {
   };
 }
 
-/** Camera on a circle around the origin: starts at (30, 15, 0), angle grows over time (same convention as the maps). */
+/** Camera on a circle around the origin, starting at (30, 15, 0), turning COUNTER-clockwise seen from above (+Y):
+ *  +X -> -Z -> -X -> +Z (three.js is right-handed, so that is z = -r sin a). */
 export function orbitCamera(t) {
   const a = (2 * Math.PI * t) / ORBIT.period_s;
-  return [ORBIT.radius * Math.cos(a), ORBIT.height, ORBIT.radius * Math.sin(a)];
+  return [ORBIT.radius * Math.cos(a), ORBIT.height, -ORBIT.radius * Math.sin(a) + 0]; // + 0 turns -0 into 0
 }
 
 const r1 = (v) => Math.round(v * 10) / 10;

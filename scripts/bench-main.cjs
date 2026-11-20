@@ -10,6 +10,8 @@ app.commandLine.appendSwitch('disable-gpu-vsync');
 app.commandLine.appendSwitch('disable-frame-rate-limit');
 app.commandLine.appendSwitch('disable-renderer-backgrounding');
 app.commandLine.appendSwitch('disable-background-timer-throttling');
+// Ubuntu 23.10+ blocks Electron's sandbox unless chrome-sandbox is SUID root; the bench only loads the local game page.
+if (process.platform === 'linux') app.commandLine.appendSwitch('no-sandbox');
 
 function parseArgs(argv) {
   const a = { seed: 42, duration: 30, out: 'bench.json' };

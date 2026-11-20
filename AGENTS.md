@@ -29,6 +29,7 @@ Game 3D (three.js) + deterministic headless sim. Contract: `game.contract.json` 
 - Tests: assert on the specified number (from the ticket), not on what the code happens to output. Use `every: 1` when asserting a specific tick; scenario must set `random_*: false` unless testing spawns.
 - UI text >= 18 px at 1280x720 (`font-size: calc(Npx * var(--fs))`, N >= 18). Key hints come from `settings.keys` (`data-key`), never hardcode a key name.
 - `Game({bench:true})` is for the benchmark only; never use it in headless or tests of rules.
+- Before tagging a phase: an independent read-only reviewer agent (not the author) reviews rules, deliverables and tests against the ticket; its findings go verbatim to `docs/proof/phase-<N>/review.md`, and the author adds a triage (fixed / documented assumption / rejected, with reason). Never edit the reviewer's text.
 - Ambiguity: write the assumption (next free A-number), never invent ticket text.
 
 ## Past agent mistakes (keep out)

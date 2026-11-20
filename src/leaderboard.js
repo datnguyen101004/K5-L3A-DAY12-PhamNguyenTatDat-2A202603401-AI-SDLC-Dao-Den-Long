@@ -1,11 +1,19 @@
 // Local leaderboard rules (Ticket-04 §3). Pure: shared by server.js (disk store, export) and the browser fallback.
 export const MAX_ENTRIES = 10;
 
-/** 3-12 characters: Latin letters (Vietnamese diacritics included), digits, underscore. Returns the NFC name or null. */
+// Vietnamese letters, checked on the canonical decomposition: a vowel with an optional shape mark (â ê ô / ă / ơ ư)
+// and an optional tone mark (grave, acute, tilde, hook above, dot below), plus đ/Đ. Tones never sit on consonants
+// (so Ñ is refused).
+const TONE = '[\\u0300\\u0301\\u0303\\u0309\\u0323]?';
+const VI_CHAR = new RegExp(`^(?:[A-Za-z0-9_]|[đĐ]|(?:[AaEeOo]\\u0302|[Aa]\\u0306|[OoUu]\\u031B|[AEIOUYaeiouy])${TONE})$`);
+
+/** 3-12 characters of [A-Za-z0-9_] plus Vietnamese letters. Returns the NFC name or null. */
 export function normalizeName(raw) {
   if (typeof raw !== 'string') return null;
   const name = raw.trim().normalize('NFC');
-  return /^[\p{Script=Latin}\p{Nd}_]{3,12}$/u.test(name) ? name : null;
+  const chars = [...name];
+  if (chars.length < 3 || chars.length > 12) return null;
+  return chars.every((c) => VI_CHAR.test(c.normalize('NFD'))) ? name : null;
 }
 
 /** ISO 8601 with the local UTC offset, e.g. 2026-11-20T15:01:02+07:00. */

@@ -52,10 +52,10 @@ node server.js --export-leaderboard out.json     # {"entries": [...]} theo đún
 npm test                                                     # 70 test: luật, headless CLI, soak, bảng xếp hạng, benchmark
 node src/headless.js --seed 1 --night 1 --ticks 600 --out out.jsonl [--scenario s.json] [--inputs i.json] [--snapshot-every 10]
 node scripts/bench.mjs --seed 42 --duration 30 --out bench.json
-node --expose-gc --lite-mode src/soak.js --seed 7 --nights 10 --out soak.json
+node --expose-gc --lite-mode --no-expose-wasm src/soak.js --seed 7 --nights 10 --out soak.json
 ```
 - **Headless** theo Test Contract v1.3 (`game.contract.json`). Mã thoát: 0 thành công, 2 nếu file scenario/inputs sai định dạng, 1 nếu tham số sai.
-- **Benchmark** mở cửa sổ Electron (Chromium) 1280×720, vẽ đúng 1280×720 điểm ảnh, **tắt vsync** (`--disable-gpu-vsync --disable-frame-rate-limit`). Cảnh chuẩn: Đêm 1 với đầy đủ ánh sáng và bloom, 200 Bóng Mực lang thang, 100 đom đóm, đèn L1-L3 sáng; camera bay vòng bán kính 30 m, cao 15 m, 15 s một vòng; 3 s khởi động rồi đo. Phần trang trí sáng tạo (cỏ, hoa, đá) tắt trong cảnh này. `peak_mem_mb` là tổng RSS (working set) của mọi tiến trình Electron. Lần chạy đầu tiên sau khi cài có thể chậm hơn vì hệ điều hành quét file mới và tạo cache shader.
+- **Benchmark** mở cửa sổ Electron (Chromium) 1280×720, vẽ đúng 1280×720 điểm ảnh, **tắt vsync** (`--disable-gpu-vsync --disable-frame-rate-limit`). Cảnh chuẩn: Đêm 1 với đầy đủ ánh sáng và bloom, 200 Bóng Mực lang thang, 100 đom đóm, đèn L1-L3 sáng; camera bay vòng bán kính 30 m, cao 15 m, ngược chiều kim đồng hồ khi nhìn từ trên xuống, 15 s một vòng; 3 s khởi động rồi đo. Phần trang trí sáng tạo (cỏ, hoa, đá) tắt trong cảnh này. `peak_mem_mb` là tổng RSS (working set) của mọi tiến trình Electron. Lần chạy đầu tiên sau khi cài có thể chậm hơn vì hệ điều hành quét file mới và tạo cache shader.
 - **Soak** chạy 10 Đêm liên tiếp trong một tiến trình với input ngẫu nhiên theo seed. `--lite-mode` là chế độ bộ nhớ thấp của V8; heap thực của game (`heap_used_*`) giữ nguyên dù có hay không có cờ này.
 
 Kết quả của tôi: [`docs/proof/phase-4/`](docs/proof/phase-4/README.md).

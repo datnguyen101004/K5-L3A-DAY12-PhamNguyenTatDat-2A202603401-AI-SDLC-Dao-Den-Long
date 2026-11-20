@@ -7,7 +7,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const t0 = Date.now();
+const t0 = Math.round(performance.timeOrigin); // the moment this process started
 const here = path.dirname(fileURLToPath(import.meta.url));
 let electron;
 try {

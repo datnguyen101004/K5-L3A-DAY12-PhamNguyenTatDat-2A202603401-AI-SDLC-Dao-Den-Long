@@ -55,7 +55,7 @@ const litExcept = (...keep) => ['L1', 'L2', 'L3', 'L4', 'L5'].filter((id) => !ke
 test('contract v1.3 carries the standard numbers and the bench/soak commands', () => {
   assert.equal(CONTRACT.contract_version, '1.3');
   assert.equal(CONTRACT.bench_cmd, 'node scripts/bench.mjs');
-  assert.equal(CONTRACT.soak_cmd, 'node --expose-gc --lite-mode src/soak.js');
+  assert.equal(CONTRACT.soak_cmd, 'node --expose-gc --lite-mode --no-expose-wasm src/soak.js');
   const expect = {
     player_speed: 6, carry_capacity: 10, lantern_cost: 10, lantern_count_night1: 5, pickup_radius: 1, interact_radius: 2,
     pulse_cost: 3, pulse_radius: 5, pulse_cooldown_s: 3, pulse_stun_s: 2, pulse_push_m: 4, safe_radius: 6, shade_speed: 4,

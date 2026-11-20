@@ -14,6 +14,9 @@ const e = (name, score, at, extra = {}) => ({ name, score, nights_won: 1, achiev
 test('names: 3-12 of [A-Za-z0-9_], Vietnamese letters allowed, no spaces or symbols', () => {
   for (const ok of ['Dat', 'abc', 'A_1', 'TwelveChars_', 'Mây', 'Đạt_99', 'Nguyễn']) assert.ok(normalizeName(ok), ok);
   for (const bad of ['ab', 'ThirteenChars', 'a b', 'x-y', '', '日本語名', 'abc!', 42]) assert.equal(normalizeName(bad), null, String(bad));
+  // non-ASCII digits and letters that are not Vietnamese are refused (found by the independent review)
+  for (const bad of ['١٢٣', 'ＡＢＣ', 'ⅠⅡⅢ', 'ªºª', 'ǅǅǅ', 'Ꜳꜳꜳ', '٣ab', 'Ñandú', 'Straße', 'Łódź']) assert.equal(normalizeName(bad), null, bad);
+  for (const ok of ['Đường_Ỷ', 'Hươu99', 'ỨỪỬỮỰ']) assert.ok(normalizeName(ok), ok);
   assert.equal(normalizeName('  Mây  '), 'Mây');
   assert.equal(normalizeName('Ma\u0302\u0300y'), 'Mầy'); // decomposed input is stored as NFC
 });

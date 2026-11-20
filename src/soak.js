@@ -29,7 +29,19 @@ const measure = () => {
   return { rss: mb(u.rss), heap: mb(u.heapUsed) };
 };
 
-/** Seeded random player: new direction every 30 ticks; per tick 5% jump, 3% dash, 2% pulse, 10% interact. */
+/** Night i (1-based, as in the ticket) is night ((i-1) mod 3)+1 and uses seed + i. */
+export function soakPlan(seed, nights) {
+  return Array.from({ length: nights }, (_, k) => ({ index: k + 1, night: (k % 3) + 1, seed: seed + k + 1 }));
+}
+
+// The game acts on a button only when it goes from released to held. Holding it on a tick with probability q
+// gives a press on that tick with probability q(1-q); q = (1 - sqrt(1 - 4p)) / 2 makes that exactly p.
+const holdProb = (p) => (1 - Math.sqrt(1 - 4 * p)) / 2;
+export const PRESS_RATES = { jump: 0.05, dash: 0.03, pulse: 0.02, interact: 0.1 };
+const HOLD = Object.fromEntries(Object.entries(PRESS_RATES).map(([k, p]) => [k, holdProb(p)]));
+
+/** Seeded random player: new direction every 30 ticks; per tick a press (false -> true) of jump 5%, dash 3%,
+ *  pulse 2%, interact 10%. */
 export function randomInput(seed) {
   const rng = mulberry32((seed * 2654435761) >>> 0);
   const inp = { move: [0, 0], cam_yaw_deg: 0, jump: false, interact: false, pulse: false, dash: false, pause: false };
@@ -39,17 +51,16 @@ export function randomInput(seed) {
       const a = rng() * 2 * Math.PI;
       inp.move = [Math.cos(a), Math.sin(a)];
     }
-    inp.jump = rng() < 0.05;
-    inp.dash = rng() < 0.03;
-    inp.pulse = rng() < 0.02;
-    inp.interact = rng() < 0.1;
+    inp.jump = rng() < HOLD.jump;
+    inp.dash = rng() < HOLD.dash;
+    inp.pulse = rng() < HOLD.pulse;
+    inp.interact = rng() < HOLD.interact;
     return inp;
   };
 }
 
 /** Plays one night to its end (or the standard duration); returns 'won' | 'lost'. */
-export function playNight({ seed, night, tuning }) {
-  const game = new Game({ seed, night, tuning });
+export function playNight({ seed, night, tuning, game = new Game({ seed, night, tuning }) }) {
   const next = randomInput(seed);
   const maxTicks = tuning[`night${night}_duration_s`] * TICK_RATE;
   while (game.state === 'playing' && game.simTick < maxTicks) {
@@ -67,20 +78,19 @@ function main() {
   const results = [];
   let crashes = 0;
   let memStart = null;
-  for (let i = 0; i < o.nights; i++) {
-    const night = (i % 3) + 1;
-    const seed = o.seed + i;
+  for (const { index, night, seed } of soakPlan(o.seed, o.nights)) {
     try {
-      if (i === 0) {
-        // "after the first night has loaded": build it, measure, then play that same night
-        new Game({ seed, night, tuning });
+      let game;
+      if (index === 1) {
+        // "after the first night has loaded": build it, measure while it is alive, then play that same night
+        game = new Game({ seed, night, tuning });
         memStart = measure();
       }
-      results.push(playNight({ seed, night, tuning }).result);
+      results.push(playNight({ seed, night, tuning, game }).result);
     } catch (e) {
       crashes++;
       results.push('crash');
-      process.stderr.write(`night ${i + 1} (Đêm ${night}, seed ${seed}) crashed: ${e.stack || e}\n`);
+      process.stderr.write(`night ${index} (Đêm ${night}, seed ${seed}) crashed: ${e.stack || e}\n`);
     }
   }
   const memEnd = measure(); // the last night's Game is out of scope: this is "after reset"

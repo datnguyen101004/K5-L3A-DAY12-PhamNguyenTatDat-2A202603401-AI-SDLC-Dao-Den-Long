@@ -17,6 +17,8 @@ test('frame statistics follow the ticket formulas', () => {
   assert.equal(s.frame_ms_p95, 10);
   const s2 = frameStats([...Array(150).fill(10), 30, 50]); // N = 152, k = ceil(1.52) = 2 -> mean(30, 50) = 40
   assert.equal(s2.p1_low_fps, 25);
+  // p95 is nearest-rank: N = 20 sorted 1..20 -> rank ceil(0.95 * 20) = 19 -> 19 (interpolation would give 19.05)
+  assert.equal(frameStats(Array.from({ length: 20 }, (_, i) => 20 - i)).frame_ms_p95, 19);
 });
 
 test('scene: 200 wandering shades and 100 motes on the island, L1-L3 lit at 100, seeded', () => {
@@ -31,7 +33,20 @@ test('scene: 200 wandering shades and 100 motes on the island, L1-L3 lit at 100,
   assert.equal(g.motes.length, 100); // above the gameplay cap of 30
 });
 
-test('bench mode: shades keep moving; no spawns, damage, pickup, fuel loss or end of night', () => {
+test('bench mode: the crowd keeps wandering through the whole measured window (3 s .. 33 s)', () => {
+  const g = new Game({ seed: 42, night: 1, tuning: T, scenario: benchScenario(42), bench: true });
+  const step = (n) => { for (let i = 0; i < n; i++) g.step(idle); };
+  step(3 * 60);
+  for (let w = 0; w < 6; w++) { // six 5 s windows
+    const a = g.shades.map((s) => [s.pos[0], s.pos[2]]);
+    step(5 * 60);
+    const moved = g.shades.filter((s, i) => Math.hypot(s.pos[0] - a[i][0], s.pos[2] - a[i][1]) > 0.05).length;
+    assert.ok(moved >= 190, `window ${w}: only ${moved}/200 shades moved`);
+    assert.ok(g.shades.every((s) => s.state === 'wander'), 'no chase or drain in the bench scene');
+  }
+});
+
+test('bench mode: no spawns, damage, pickup, fuel loss or end of night', () => {
   const g = new Game({ seed: 42, night: 1, tuning: T, scenario: benchScenario(42), bench: true });
   const before = g.shades.map((s) => [...s.pos]);
   for (let i = 0; i < 60 * 40; i++) g.step(idle); // 40 s
@@ -46,10 +61,10 @@ test('bench mode: shades keep moving; no spawns, damage, pickup, fuel loss or en
   assert.deepEqual(g.p.pos, [0, 0, 0]);
 });
 
-test('camera orbit: starts at (30, 15, 0), radius 30, height 15, one turn per 15 s', () => {
+test('camera orbit: starts at (30, 15, 0), counter-clockwise seen from above (quarter turn at (0, 15, -30)), one turn per 15 s', () => {
   assert.deepEqual(orbitCamera(0), [30, 15, 0]);
   const q = orbitCamera(3.75);
-  assert.ok(Math.abs(q[0]) < 1e-9 && Math.abs(q[2] - 30) < 1e-9);
+  assert.ok(Math.abs(q[0]) < 1e-9 && Math.abs(q[2] + 30) < 1e-9, `quarter turn ${q}`);
   const f = orbitCamera(15);
   assert.ok(Math.abs(f[0] - 30) < 1e-9 && Math.abs(f[2]) < 1e-9);
 });

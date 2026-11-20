@@ -19,6 +19,9 @@ Máy dev: Windows 11 x64, Intel i5-12500H, Intel Iris Xe (đồ họa tích hợ
 | §7 Retro | `docs/notes/retro.md` | | Đạt |
 | §7 Video demo | Cần người quay | | **Chưa có** (xem dưới) |
 
+## Rà soát độc lập và hệ quả cho số đo
+Reviewer độc lập đã rà Phase 4: [`review.md`](review.md) (nguyên văn + phân loại). Đã sửa 10 điểm; ba điểm ảnh hưởng tới benchmark (đám Bóng Mực đứng yên sau ~13 s, quỹ đạo camera sai chiều, mốc `load_ms`). **`bench.json` và bảng dưới đây là số đo TRƯỚC các sửa này, chưa đo lại**: hai lần chạy đầu sau khi sửa kết thúc bằng lỗi GPU của Electron và tôi dừng chạy theo yêu cầu. Cảnh mới có đám Bóng Mực di chuyển suốt 30 s nên có thể nặng hơn; hãy coi số đo là tham khảo cho tới khi đo lại. Soak đã chạy lại: xem `soak.json` (không cần đo lại do không đổi kết quả).
+
 ## Dao động của benchmark (trung thực)
 Đồ họa tích hợp, vsync tắt, nên nhịp khung hình dao động giữa các lần chạy. Các lần chạy tôi đã làm (cùng mã, pixel ratio 1):
 

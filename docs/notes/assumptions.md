@@ -79,3 +79,28 @@ Ghi lại các quyết định thiết kế ở [ADR 0001](../adr/0001-lantern-f
 | A45 | Sức chứa | `successful_lights` tăng ở mỗi `lantern_lit` (kể cả thắp lại); mỗi Đêm là một `Game` mới nên tự về 0 |
 | A46 | Điểm cho Tỏa Sáng lên Bóng Mực đang drain | 15 tổng (5 + 10): khóa `score.per_stun_drain = 15` |
 | A47 | Chế độ mù màu | Chỉ ở client (không đổi headless); lưu trong localStorage cùng âm lượng/độ nhạy |
+
+---
+
+# Phase 4 (Ticket-04 "Bình minh", Contract v1.3)
+
+Số đo và bằng chứng: [docs/proof/phase-4](../proof/phase-4/README.md). Các chỗ ticket để ngỏ và cách tôi hiểu:
+
+| # | Chỗ mơ hồ | Giả định | Nơi áp dụng |
+|---|---|---|---|
+| A48 | "Tắt vsync nếu engine cho phép" với bản web | Benchmark chạy trong Electron (Chromium) với `--disable-gpu-vsync --disable-frame-rate-limit`, nên `vsync_off: true`. Trình duyệt thường luôn khóa theo tần số màn hình, nên bench không chạy trong tab trình duyệt | `scripts/bench-main.cjs` |
+| A49 | Cửa sổ 1280×720 | Vùng vẽ (content) đúng 1280×720 (`useContentSize`) và vẽ đúng 1280×720 điểm ảnh (pixel ratio 1) trên mọi máy, kể cả màn hình HiDPI, để mọi bài vẽ cùng khối lượng | `scripts/bench-main.cjs`, `web/bench.js` |
+| A50 | "Đầy đủ hiệu ứng và ánh sáng như lúc chơi thật" | Giữ bloom, sương, đèn point-light, bầu trời, bản đồ nhỏ, HUD. Tắt trang trí sáng tạo (cỏ, hoa, đá) vì ticket yêu cầu tắt phần sáng tạo trong cảnh chuẩn | `web/world.js` (`decor: false`) |
+| A51 | "200 Bóng Mực rải đều trên đảo" | Phân bố đều theo diện tích trên đĩa bán kính 37 m (r = 37·√u), dùng `mulberry32(42)`; trạng thái ban đầu `wander`. Bóng Mực vẫn chạy luật bình thường nên một số chuyển sang `chase` khi tới gần Mây (Mây đứng ở tâm) | `src/bench.js` |
+| A52 | Hệ thống bị tắt trong bench | `Game({bench:true})` bỏ qua S2 dầu, S4 nhặt, S9 va chạm, S10 sinh thực thể, S11 kết thúc. Chế độ này không đi qua CLI headless nên đầu ra contract không đổi | `src/sim.js` |
+| A53 | Quỹ đạo camera "ngược chiều kim đồng hồ khi nhìn từ trên xuống" | Ban đầu tôi dùng quy ước góc của bản đồ (+X→+Z) nhưng đó là chiều kim đồng hồ khi nhìn từ +Y (reviewer độc lập phát hiện). Sửa: (30,15,0) → (0,15,−30) → (−30,15,0) → (0,15,30), tức z = −r·sin a | `src/bench.js` (`orbitCamera`) |
+| A54 | `load_ms` "từ lúc tiến trình bắt đầu" | Từ lúc `node scripts/bench.mjs` bắt đầu (trước khi mở Electron) tới khung hình đầu của cảnh bench. Lần chạy đầu sau khi cài có thể chậm (Windows quét file, tạo cache shader) | `scripts/bench.mjs` |
+| A55 | `peak_mem_mb` là "RSS của tiến trình" nhưng Electron có nhiều tiến trình | Cộng working set của mọi tiến trình Electron (trình duyệt, GPU, renderer, tiện ích), lấy mẫu mỗi 250 ms trong lúc đo. Con số này lớn hơn bộ nhớ riêng của game | `scripts/bench-main.cjs` |
+| A56 | Soak: "RSS sau khi tải xong Đêm đầu tiên" / "sau khi reset xong Đêm cuối" | Chạy GC (`--expose-gc`) trước mỗi lần đo để đo bộ nhớ đang dùng, không phải rác chờ thu. `mem_end_mb` đo khi Game của Đêm cuối đã ra khỏi phạm vi. Ghi thêm `heap_used_*` để thấy có rò rỉ hay không | `src/soak.js` |
+| A57 | Cờ V8 cho soak | `--lite-mode` (chế độ ít bộ nhớ của V8). Không có cờ này RSS tăng khoảng 1.18-1.27× (đo nhiều lần, tùy máy) và có thể vượt ngưỡng 1.2×; nguyên nhân là V8 nới heap và cache JIT, heap thực vẫn phẳng (4.1 → 4.2 MB). Bài đạt ngưỡng nhờ cờ này; `--lite-mode` tắt trình biên dịch tối ưu của V8, nên soak không chạy mã nhanh như trong game. Thêm `--no-expose-wasm` để hết cảnh báo xung đột cờ | `game.contract.json` (`soak_cmd`) |
+| A58 | Input ngẫu nhiên của soak | Mỗi Đêm có bộ sinh riêng theo seed của Đêm; Đêm i (đếm từ 1) dùng seed + i. Hướng chọn đều theo góc. Game chỉ hành động ở cạnh false→true, nên xác suất giữ phím là q = (1 − √(1 − 4p))/2 để tỉ lệ nhấn đúng 5/3/2/10% (đo 200.000 tick trong test) | `src/soak.js` |
+| A59 | Tên trên bảng xếp hạng | Chỉ `[A-Za-z0-9_]` và chữ cái tiếng Việt (kiểm trên dạng phân rã Unicode; dấu thanh chỉ trên nguyên âm), độ dài 3-12 sau khi chuẩn hóa NFC và bỏ khoảng trắng hai đầu | `src/leaderboard.js` |
+| A60 | "Bằng điểm thì ai đạt trước đứng trên" | So `achieved_at` theo thời điểm thật (khác múi giờ vẫn so đúng); nếu trùng cả thời điểm thì mục lưu trước đứng trên | `src/leaderboard.js` |
+| A61 | Điểm lưu khi thua | Tổng điểm các Đêm đã thắng trước Đêm thua (điểm của Đêm đang thua không tính, giống luật tổng điểm của Ticket-02). `seed` là seed của chiến dịch; Đêm n dùng seed + n | `web/main.js` |
+| A62 | `<run_cmd> --export-leaderboard` | `run_cmd` đổi thành `node server.js` vì `npm start` không chuyển cờ cho chương trình | `game.contract.json`, `server.js` |
+| A63 | Đổi phím | Esc luôn tạm dừng (và nhả chuột) ngoài phím đổi được; các phím hệ thống (Esc, F3, Tab, Enter, F5, F11, F12) không gán được. Phím mũi tên không còn là phím phụ cố định | `web/a11y.js` |
