@@ -2,49 +2,49 @@
 
 <!-- Video demo: (thêm link ở Phase 4) -->
 
-Game 3D góc nhìn thứ ba. Mây, người giữ đèn nhỏ tuổi, gom đom đóm để thắp lại 5 Đèn Lồng Lớn trên Đảo Bến và né Bóng Mực trong sương đen.
+Game 3D góc nhìn thứ ba. Mây, người giữ đèn nhỏ tuổi, gom đom đóm để thắp lại các Đèn Lồng Lớn qua **3 Đêm** (Đảo Bến, Đảo Cau, Đảo Chuông) và né Bóng Mực, Gió Lạc.
 
 ## Cài đặt và chạy (Node.js >= 20, macOS/Linux/Windows)
 ```bash
 npm install
 npm start          # mở http://localhost:8080
-npm test           # 16 kịch bản headless
+npm test           # 42 kịch bản headless + campaign
 ```
+`http://localhost:8080/?night=2` (hoặc 3) bỏ qua menu để vào thẳng thẻ giới thiệu của đêm đó (dùng để kiểm thử).
 
 ## Điều khiển
 | Phím | Việc |
 |---|---|
 | W A S D / mũi tên | Di chuyển (theo hướng camera) |
 | Space | Nhảy |
-| E | Nạp đom đóm vào đèn gần nhất (trong 3 m) |
-| F | Tỏa sáng: xua Bóng Mực (tốn 1 đom đóm, hồi 2 s) |
-| Q / Z | Xoay camera |
-| R | Chơi lại (sau khi thắng/thua) |
+| Shift | Lướt (14 m/s, 0.2 s, hồi 1.5 s) |
+| E | Nạp đom đóm vào đèn gần nhất (trong 2 m) |
+| F | Tỏa Sáng: xua Bóng Mực (3 đom đóm, hồi 3 s) |
+| Chuột kéo / Q, Z | Xoay camera |
+| Esc / P | Tạm dừng (Tiếp tục / Chơi lại Đêm / Cài đặt / Về menu) |
+| R / Enter | Tiếp tục ở màn kết quả / bắt đầu Đêm |
 
-## Luật chơi
-- Đảo tròn bán kính 40 m, 5 đèn ở vòng bán kính 25 m. Mây có 3 ngọn lửa (máu), 300 giây tới bình minh.
-- Đom đóm tự nhặt khi lại gần (1.5 m), mang tối đa 5. Mỗi đèn cần 5 đom đóm để sáng.
-- Bóng Mực đuổi theo Mây; chạm (1 m) thì mất 1 ngọn lửa và rơi một nửa số đom đóm đang mang, rồi bất tử 1.5 s.
-- Tỏa sáng: Bóng Mực trong 8 m bị choáng 3 s và bị đẩy lùi 3 m. Bóng Mực không vào được 5 m quanh đèn **đã sáng**.
-- Thắng: thắp hết 5 đèn. Thua: hết lửa, hoặc hết 300 s.
-- Điểm: +10 mỗi đom đóm, +100 mỗi đèn thắp, +20 mỗi Bóng Mực bị choáng; khi thắng thêm +2 mỗi giây còn lại và +50 mỗi ngọn lửa còn lại.
+## Luật chơi (số chuẩn Ticket-02, nằm ở `game.contract.json`)
+- Mang tối đa 10 đom đóm; một đèn cần 10 (nạp nhiều lần được, đèn nhớ tiến độ). Đèn sáng tạo vùng an toàn 6 m.
+- Bóng Mực (4.0 m/s, Đêm 3: 4.5) phát hiện 12 m, bỏ đuổi 18 m. Chạm: -1 Ngọn Lửa, rơi một nửa đom đóm, bất tử 1.5 s. Tỏa Sáng làm choáng 2 s và đẩy lùi 4 m.
+- Rơi khỏi đảo (Y < -10): -1 Ngọn Lửa, mất hết đom đóm, hồi sinh sau 1 s.
+- Gió Lạc (Đêm 2-3) cướp tới 3 đom đóm của người mang ≥ 5; Tỏa Sáng đuổi nó và buộc nó thả lại. Bùa Gió: chạy 7.2 m/s, lướt không hồi chiêu trong 10 s. Đêm 3 có gió mạnh (báo trước 2 s).
+- Thắng: thắp hết đèn. Thua: hết Ngọn Lửa hoặc hết giờ. Đêm 1/2/3: 300/330/360 s.
+- Điểm: +10/đom đóm nạp, +100/đèn, +5/Bóng Mực trúng Tỏa Sáng; thắng thêm 2 × giây còn lại + 50 × Ngọn Lửa. Tổng điểm = tổng các Đêm đã thắng. Thắng Đêm 3 ra màn Bình Minh.
+- Cài đặt (âm lượng, độ nhạy chuột) lưu trong localStorage. Âm thanh được tổng hợp bằng WebAudio, không dùng file.
 
-Đảo sáng dần (sương mỏng, ánh sáng nền tăng) mỗi khi thắp một đèn.
-
-## Headless (Test Contract v1.0)
+## Headless (Test Contract v1.1)
 ```bash
-node src/headless.js --seed 1 --night 1 --ticks 600 --out out.jsonl \
+node src/headless.js --seed 1 --night 1|2|3 --ticks 600 --out out.jsonl \
   [--scenario s.json] [--inputs i.json] [--snapshot-every 10]
 ```
-Khai báo trong `game.contract.json`. Mã thoát: 0 thành công, 2 nếu file scenario/inputs sai định dạng, 1 nếu thiếu/sai tham số, 3 lỗi nội bộ. Cùng seed + scenario + inputs cho output giống hệt từng byte.
-
-`null`/`false` trong tuning: `fall_enabled = false` (không có rơi khỏi đảo; mép đảo là tường vô hình, nên không có sự kiện `player_hit` kiểu `fall`). Mọi khóa khác đều có giá trị thật.
+Mã thoát: 0 thành công, 2 nếu scenario/inputs sai định dạng, 1 tham số sai, 3 lỗi nội bộ. Cùng seed + scenario + inputs cho output giống hệt từng byte. Một Đêm đầy đủ (21.600 tick) chạy khoảng 0.25 s.
 
 ## Cấu trúc
-`src/sim.js` (toàn bộ luật, thuần) · `src/headless.js` (CLI) · `web/` (three.js, chỉ hiển thị + nhập liệu) · `tests/` · `docs/` (giả định, bằng chứng, nhật ký AI) · `AGENTS.md` + `.claude/` (harness).
+`src/sim.js` (luật, thuần) · `src/maps.js` (3 bản đồ + địa hình) · `src/campaign.js` · `src/headless.js` · `web/` (three.js, UI, âm thanh) · `tests/` · `docs/spec` (tiêu chí nghiệm thu) · `docs/notes` (giả định, nhật ký AI) · `docs/proof` (bằng chứng theo phase) · `AGENTS.md` + `.claude/` (harness).
 
 ## Sáng tạo của tôi
-Phase 1: chưa có thêm cơ chế ngoài PRD-0 (ưu tiên lõi đúng). Hiệu ứng nhỏ chỉ ở phần hiển thị: vòng sáng lan khi tỏa sáng, Bóng Mực co lại khi choáng, Mây nhấp nháy khi bất tử.
+Chưa thêm cơ chế ngoài yêu cầu (ưu tiên lõi đúng). Chỉ có hiệu ứng hiển thị nhỏ trong `web/` (vòng sáng Tỏa Sáng, nhấp nháy bất tử, mũi tên chỉ đèn), không ảnh hưởng headless.
 
 ## Tài liệu
-- [Giả định](docs/notes/assumptions.md) · [Bằng chứng Phase 1](docs/proof/phase-1/README.md) · [Nhật ký AI](docs/notes/ai-log.md)
+[Giả định](docs/notes/assumptions.md) · [Spec Ticket-02](docs/spec/ticket-02.md) · [Bằng chứng Phase 2](docs/proof/phase-2/README.md) · [Nhật ký AI](docs/notes/ai-log.md)

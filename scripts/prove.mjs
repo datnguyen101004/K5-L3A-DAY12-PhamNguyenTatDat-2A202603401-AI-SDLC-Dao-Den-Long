@@ -1,32 +1,55 @@
-// Regenerates docs/proof/phase-1/*: test report, sample runs, determinism hashes.
+// Regenerates docs/proof/phase-<N>/ : npm test report, sample headless runs per night, determinism hashes, full-night timings.
+// Usage: node scripts/prove.mjs [phase]   (default 2). Proof must be regenerated at the commit that gets the tag.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
+import os from 'node:os';
 
-const dir = 'docs/proof/phase-1';
+const phase = process.argv[2] ?? '2';
+const dir = `docs/proof/phase-${phase}`;
 const sam = `${dir}/samples`;
 fs.mkdirSync(sam, { recursive: true });
-const sh = (args) => spawnSync('node', args, { encoding: 'utf8' });
+const hn = (args) => {
+  const t0 = process.hrtime.bigint();
+  const r = spawnSync('node', ['src/headless.js', ...args], { encoding: 'utf8' });
+  return { status: r.status, stderr: r.stderr, ms: Number(process.hrtime.bigint() - t0) / 1e6 };
+};
 const hash = (f) => crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex');
+const summary = [];
 
 const test = spawnSync('npm', ['test'], { encoding: 'utf8', shell: true });
 fs.writeFileSync(`${dir}/npm-test.txt`, test.stdout + test.stderr);
+summary.push(`npm test exit ${test.status}`);
 
-fs.writeFileSync(`${sam}/win.scenario.json`, JSON.stringify({
-  player: { pos: [0, 0, 0], carried: 5, flames: 3 }, random_motes: false, random_shades: false, motes: [], shades: [],
-  lanterns: ['L2', 'L3', 'L4', 'L5'].map((id) => ({ id, lit: true })).concat([{ id: 'L1', pos: [0, 0, 6] }]), time_left_s: 120,
-}, null, 1));
-fs.writeFileSync(`${sam}/win.inputs.json`, JSON.stringify({ frames: [{ tick: 0, move: [0, 1] }, { tick: 60, move: [0, 0], interact: true }, { tick: 61, interact: false }] }));
-const w = sh(['src/headless.js', '--seed', '1', '--night', '1', '--scenario', `${sam}/win.scenario.json`, '--inputs', `${sam}/win.inputs.json`, '--ticks', '600', '--out', `${sam}/win.out.jsonl`]);
+// Determinism: same seed/scenario/inputs twice per night, plus full-night timing (idle player, 21600 ticks).
+const frames = [{ tick: 0, move: [0.3, 1] }, { tick: 200, pulse: true }, { tick: 201, pulse: false }, { tick: 300, dash: true }, { tick: 301, dash: false }, { tick: 500, move: [-1, 0.2], cam_yaw_deg: 40 }];
+fs.writeFileSync(`${sam}/rand.inputs.json`, JSON.stringify({ frames }));
+fs.writeFileSync(`${sam}/rand.scenario.json`, JSON.stringify({ player: { flames: 99, carried: 9 } }));
+let det = `machine: ${os.type()} ${os.release()} ${os.arch()}, ${os.cpus()[0].model}, node ${process.version}\n`;
+let perf = det;
+for (const night of [1, 2, 3]) {
+  const a = ['--seed', '42', '--night', String(night), '--scenario', `${sam}/rand.scenario.json`, '--inputs', `${sam}/rand.inputs.json`, '--ticks', '21600'];
+  const r1 = hn([...a, '--out', `${sam}/night${night}.run1.jsonl`]);
+  const r2 = hn([...a, '--out', `${sam}/night${night}.run2.jsonl`]);
+  const h1 = hash(`${sam}/night${night}.run1.jsonl`);
+  const h2 = hash(`${sam}/night${night}.run2.jsonl`);
+  fs.unlinkSync(`${sam}/night${night}.run2.jsonl`);
+  fs.unlinkSync(`${sam}/night${night}.run1.jsonl`); // too large to commit; the hashes above prove identity
+  det += `night ${night} seed 42 21600 ticks: run1 ${h1}\n                              run2 ${h2}\n                              identical: ${h1 === h2}\n`;
+  perf += `night ${night}: 21600 ticks in ${r1.ms.toFixed(0)} ms / ${r2.ms.toFixed(0)} ms (limit 30000 ms), exit ${r1.status}\n`;
+  summary.push(`night ${night} deterministic=${h1 === h2} ${r1.ms.toFixed(0)}ms`);
+}
+fs.writeFileSync(`${dir}/determinism.txt`, det);
+fs.writeFileSync(`${dir}/perf-headless.txt`, perf);
 
-fs.writeFileSync(`${sam}/rand.inputs.json`, JSON.stringify({ frames: [{ tick: 0, move: [0.3, 1] }, { tick: 200, pulse: true }, { tick: 201, pulse: false }] }));
-const a = ['src/headless.js', '--seed', '42', '--night', '1', '--inputs', `${sam}/rand.inputs.json`, '--ticks', '18000'];
-sh([...a, '--out', `${sam}/rand.run1.jsonl`]);
-sh([...a, '--out', `${sam}/rand.run2.jsonl`]);
-const h1 = hash(`${sam}/rand.run1.jsonl`);
-const h2 = hash(`${sam}/rand.run2.jsonl`);
-fs.unlinkSync(`${sam}/rand.run2.jsonl`);
-
-const last = fs.readFileSync(`${sam}/win.out.jsonl`, 'utf8').trim().split('\n').at(-1);
-fs.writeFileSync(`${dir}/determinism.txt`, `seed 42, 18000 ticks, run1 sha256: ${h1}\nseed 42, 18000 ticks, run2 sha256: ${h2}\nidentical: ${h1 === h2}\n`);
-console.log('npm test exit:', test.status, '| win run exit:', w.status, '| win end line:', last, '| deterministic:', h1 === h2);
+// Sample: win night 3 by lighting the last lantern from the tier-2 platform (shows scoring + events).
+fs.writeFileSync(`${sam}/win3.scenario.json`, JSON.stringify({
+  random_motes: false, random_shades: false, random_drifters: false, wind_enabled: false, motes: [], shades: [], drifters: [],
+  player: { pos: [0, 6, 6], carried: 10, flames: 3 },
+  lanterns: ['L2', 'L3', 'L4', 'L5', 'L6', 'L7'].map((id) => ({ id, lit: true })), time_left_s: 100,
+}));
+fs.writeFileSync(`${sam}/win3.inputs.json`, JSON.stringify({ frames: [{ tick: 30, interact: true }, { tick: 31, interact: false }] }));
+const w = hn(['--seed', '1', '--night', '3', '--scenario', `${sam}/win3.scenario.json`, '--inputs', `${sam}/win3.inputs.json`, '--ticks', '600', '--out', `${sam}/win3.out.jsonl`]);
+const last = fs.readFileSync(`${sam}/win3.out.jsonl`, 'utf8').trim().split('\n').at(-1);
+summary.push(`win3 exit ${w.status} ${last}`);
+console.log(summary.join('\n'));

@@ -20,3 +20,40 @@
 | A16 | Camera/điều khiển | Camera đứng sau lưng, nhìn theo +Z khi yaw = 0 nên "phải màn hình" là -X; phím D gửi move x = -1. Chỉ ảnh hưởng client, không ảnh hưởng headless. | web |
 
 Các số tuning nằm trong `game.contract.json` (nguồn duy nhất).
+
+---
+
+# Phase 2 (Ticket-02, Contract v1.1)
+
+## Thay đổi yêu cầu so với Phase 1 và hệ quả (ghi lý do)
+| Thay đổi | Lý do (ticket) | Test cũ xử lý thế nào |
+|---|---|---|
+| Mọi số tuning bị thay bằng số chuẩn (tốc độ, sức chứa 10, giá đèn 10, Tỏa Sáng 3/5 m/3 s, Bóng Mực 4.0 m/s, bán kính hit/nhặt/tương tác...) | Đồng bộ cảm giác giữa các bài | Test Phase 1 đọc số từ `game.contract.json` nên chạy lại được; những assert cứng đã viết lại theo số chuẩn |
+| Điểm `per_mote` tính khi **nạp** đèn (không phải khi nhặt); `per_stun` 5 | Điểm chuẩn hóa | Test `pickup` bỏ assert điểm; test `deposit` thêm assert điểm |
+| Bóng Mực không còn 2 con ngay tick 0 mà 2 con tại tick 300; thêm trạng thái `spawning/wander/recoil` (bỏ `chase` mặc định) | Lịch sinh chuẩn | Test Phase 1 "random_shades" thay bằng `spawn schedule`; scenario P1 có Bóng Mực ≤ 12 m vẫn chase |
+| Thắng/thua kiểm sau mọi tác động ở S11 (trước đây thắng ngay khi thắp đèn, trước Bóng Mực) | Thứ tự tick bắt buộc | Test `loss`/`win` viết lại; thêm test "Bóng Mực trong vùng an toàn vừa thắp không gây hại" |
+| Bóng Mực không còn "bị đẩy ra tường tròn": bản đồ có địa hình thật (rơi, cầu, tầng) | Phần 2 | Bỏ clamp bán kính đảo; thêm test địa hình |
+| `fall_enabled` đổi `false` → `true`; có sự kiện `player_hit by fall` | Phần 1 | Giả định A8 bị thay |
+| Output thêm `night_start` ở tick 0 ngay sau snapshot 0 | Contract v1.1 | Test không còn assert "không có sự kiện nào" |
+
+## Giả định mới
+| # | Chỗ mơ hồ | Giả định |
+|---|---|---|
+| A17 | Vận tốc chạy "tăng tốc/dừng ≤ 0.1 s" | Tức thời (0 s). Có `vel` trong snapshot |
+| A18 | Góc bản đồ | Điểm = (cx + r·cos a, y, cz + r·sin a); chiều "ngược kim đồng hồ" được hiểu theo cách làm các điểm tầng 1 (a ∈ 20°..160° nằm ở z > 0) thành hợp lệ |
+| A19 | Đêm 2/3 hướng nhìn ban đầu | +Z |
+| A20 | `invuln` trong snapshot | Số tick còn lại (nguyên); kèm `dash_cd_s`, `pulse_cd_s`, `charm_s` tính bằng giây |
+| A21 | Đèn đặt tại độ cao y (Đêm 3) | Khoảng cách tương tác/vùng an toàn chỉ tính XZ (như Phase 1) |
+| A22 | Điểm xuất phát Đêm 3 / hồi sinh | (0,0,30) (tầng 0, vì (0,0,0) nằm trong tháp); Đêm 2 (0,0,0) |
+| A23 | Phạm vi leo | Bước lên tối đa 0.5 m (dốc đi được, vách 3 m thì không); tiếp đất khi cắt mặt phẳng từ trên xuống |
+| A24 | Bóng Mực và địa hình | Chỉ đi trên cùng một mức mặt đất; bị vách/hố chặn (không tìm đường); vì vậy trên Đêm 3 Bóng Mực không lên tầng 1/2 |
+| A25 | Wander | Đi chậm 2 m/s theo hướng ngẫu nhiên đổi mỗi 120 tick. `spawning` kéo dài 30 tick (không di chuyển, không gây hại) |
+| A26 | `state_ticks_left` | Số tick còn lại của trạng thái; scenario không nêu thì spawning=30, recoil=60, stunned=120 |
+| A27 | Recoil | Đúng 60 lần dịch 2/60 m sau hit |
+| A28 | Vùng an toàn lúc đèn vừa thắp | Bóng Mực trong vùng được đẩy hướng ra mép với bước = khoảng còn lại / số tick còn lại (tới mép ở tick thứ ≤ 30), không gây sát thương, không đuổi trong thời gian đó; Bóng Mực bắt đầu trong vùng ở scenario cũng được xử lý như vậy |
+| A29 | Gió Lạc | Sinh trên điểm sinh Bóng Mực của đêm, cao +1.5 m; đi lượn 2 m/s (đổi hướng/120 tick); bay xuyên địa hình; idle cũng cướp nếu chạm và đang mang ≥ 1 |
+| A30 | Gió mạnh | Cơn k bắt đầu tại tick 1800k (k ≥ 1), kéo dài 300; hướng chọn bằng `rng` tại tick 1800k-120; `dir_deg` là góc nguyên (cos, sin) trên (X, Z); snapshot giữ `dir_deg` của cơn gần nhất |
+| A31 | Đom đóm rơi do Gió Lạc thả | Tại vị trí XZ của Gió Lạc, độ cao mặt đất dưới nó; TTL 480 |
+| A32 | `night_start` | Sự kiện tick 0 ghi ngay sau snapshot tick 0 |
+| A33 | Chọn điểm sinh | `rng` chọn đều trong các điểm hợp lệ (chỉ cần đủ điều kiện khoảng cách/chưa chiếm/không trong vùng an toàn); thứ tự đặt lần lượt |
+| A34 | Điểm Tổng nhiều Đêm | Tính ở `Campaign` (không thuộc headless): tổng điểm các Đêm thắng |

@@ -4,21 +4,116 @@
 <meta charset="utf-8">
 <title>Đảo Đèn Lồng</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0714; font-family: system-ui, sans-serif; color: #ffe2a8; }
-  canvas { display: block; }
-  #hud { position: fixed; top: 12px; left: 14px; font-size: 18px; line-height: 1.5; text-shadow: 0 0 6px #000; pointer-events: none; }
-  #hud b { color: #ffb347; }
-  #help { position: fixed; bottom: 10px; left: 14px; font-size: 13px; opacity: .75; pointer-events: none; }
-  #msg { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; background: rgba(11,7,20,.7); text-align: center; }
-  #msg h1 { font-size: 44px; margin: 0 0 8px; color: #ffb347; }
-  #msg p { font-size: 20px; margin: 4px; }
-</style>
+<link rel="stylesheet" href="/web/style.css">
 </head>
 <body>
-<div id="hud"></div>
-<div id="help">WASD di chuyển · Space nhảy · E nạp ánh sáng vào đèn · F tỏa sáng · Q/Z xoay camera · R chơi lại</div>
-<div id="msg"></div>
+<div id="game-root"></div>
+
+<!-- HUD trong game -->
+<div id="hud" class="hidden">
+  <div id="hud-flames"></div>
+  <div id="hud-top-center">
+    <div id="hud-clock">05:00</div>
+    <div id="hud-wind" class="hidden">Gió sắp tới!</div>
+    <div id="hud-charm" class="hidden"></div>
+  </div>
+  <div id="hud-top-right">
+    <div id="hud-lanterns">Đèn 0/0</div>
+    <div id="hud-score">0</div>
+  </div>
+  <div id="hud-prompt" class="hidden"></div>
+  <div id="hud-motes"></div>
+  <div id="hud-cds">
+    <div class="cd" id="cd-dash">
+      <div class="cd-fill"></div>
+      <span class="cd-label">Lướt</span>
+      <span class="cd-state" id="cd-dash-state"></span>
+    </div>
+    <div class="cd" id="cd-pulse">
+      <div class="cd-fill"></div>
+      <span class="cd-label">Tỏa Sáng</span>
+      <span class="cd-state" id="cd-pulse-state"></span>
+    </div>
+  </div>
+  <div id="hud-arrow" class="hidden"><div class="arrow-head"></div></div>
+  <div id="hud-flash"></div>
+  <div id="hud-help">WASD di chuyển · Space nhảy · Shift lướt · E nạp đèn · F tỏa sáng · Q/Z hoặc rê chuột để xoay camera · Esc tạm dừng</div>
+</div>
+
+<!-- Màn hình chính -->
+<div id="screen-menu" class="screen">
+  <div class="panel">
+    <h1 class="title">ĐẢO ĐÈN LỒNG</h1>
+    <p class="subtitle">Cùng Mây thắp sáng những ngọn đèn lồng trước bình minh</p>
+    <button id="btn-play" class="btn big">Chơi</button>
+    <button id="btn-settings" class="btn">Cài đặt</button>
+  </div>
+</div>
+
+<!-- Thẻ giới thiệu màn chơi -->
+<div id="screen-intro" class="screen hidden">
+  <div class="panel">
+    <h2 id="intro-title" class="night-title"></h2>
+    <p id="intro-line" class="quote"></p>
+    <p class="quote-by">— Ông Đăng, người giữ đèn</p>
+    <button id="btn-start" class="btn big">Bắt đầu</button>
+    <p class="hint">Nhấn Enter để bắt đầu</p>
+  </div>
+</div>
+
+<!-- Thẻ kết quả -->
+<div id="screen-result" class="screen hidden">
+  <div class="panel">
+    <h2 id="result-title" class="night-title"></h2>
+    <p id="result-reason" class="quote"></p>
+    <p id="result-score" class="score-line"></p>
+    <p id="result-total" class="score-line gold"></p>
+    <button id="btn-next" class="btn big hidden">Đêm tiếp theo</button>
+    <button id="btn-retry" class="btn big hidden">Chơi lại Đêm</button>
+    <button id="btn-tomenu" class="btn">Về menu</button>
+    <p class="hint">Nhấn R để tiếp tục</p>
+  </div>
+</div>
+
+<!-- Màn hình Bình Minh (thắng đêm 3) -->
+<div id="screen-dawn" class="screen hidden">
+  <div class="panel">
+    <h1 class="title">BÌNH MINH</h1>
+    <p id="dawn-text" class="quote"></p>
+    <p id="dawn-total" class="score-line gold"></p>
+    <button id="btn-dawn-menu" class="btn big">Về menu</button>
+  </div>
+</div>
+
+<!-- Menu tạm dừng -->
+<div id="screen-pause" class="screen overlay hidden">
+  <div class="panel">
+    <h2 class="night-title">Tạm dừng</h2>
+    <button id="btn-resume" class="btn big">Tiếp tục</button>
+    <button id="btn-restart" class="btn">Chơi lại Đêm</button>
+    <button id="btn-pause-settings" class="btn">Cài đặt</button>
+    <button id="btn-pause-menu" class="btn">Về menu</button>
+  </div>
+</div>
+
+<!-- Cài đặt (từ menu hoặc từ menu tạm dừng) -->
+<div id="screen-settings" class="screen overlay hidden">
+  <div class="panel">
+    <h2 class="night-title">Cài đặt</h2>
+    <div class="setting-row">
+      <label for="set-volume">Âm lượng chính</label>
+      <input type="range" id="set-volume" min="0" max="100" step="1">
+      <span id="vol-val" class="setting-val"></span>
+    </div>
+    <div class="setting-row">
+      <label for="set-sens">Độ nhạy chuột</label>
+      <input type="range" id="set-sens" min="20" max="300" step="5">
+      <span id="sens-val" class="setting-val"></span>
+    </div>
+    <button id="btn-settings-back" class="btn big">Quay lại</button>
+  </div>
+</div>
+
 <script type="importmap">{ "imports": { "three": "/node_modules/three/build/three.module.js" } }</script>
 <script type="module" src="/web/main.js"></script>
 </body>

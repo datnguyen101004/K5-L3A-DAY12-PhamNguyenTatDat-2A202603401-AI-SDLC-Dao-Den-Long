@@ -1,0 +1,266 @@
+
+> dao-den-long@1.0.0-phase1 test
+> node --test tests/*.test.js
+
+TAP version 13
+# Subtest: campaign: win -> next night, lose -> retry same night, total = sum of won nights, night 3 -> dawn
+ok 1 - campaign: win -> next night, lose -> retry same night, total = sum of won nights, night 3 -> dawn
+  ---
+  duration_ms: 6.1231
+  type: 'test'
+  ...
+# Subtest: campaign: refuses an unfinished night; flames refill each night
+ok 2 - campaign: refuses an unfinished night; flames refill each night
+  ---
+  duration_ms: 0.9394
+  type: 'test'
+  ...
+# Subtest: contract v1.1 carries the standard numbers
+ok 3 - contract v1.1 carries the standard numbers
+  ---
+  duration_ms: 2.0633
+  type: 'test'
+  ...
+# Subtest: maps: lantern counts, durations, start positions, --night 1|2|3
+ok 4 - maps: lantern counts, durations, start positions, --night 1|2|3
+  ---
+  duration_ms: 303.0689
+  type: 'test'
+  ...
+# Subtest: snapshot v1.1 shape
+ok 5 - snapshot v1.1 shape
+  ---
+  duration_ms: 85.4348
+  type: 'test'
+  ...
+# Subtest: tick model: snapshot 0 first, N steps, speed 6, night_start event
+ok 6 - tick model: snapshot 0 first, N steps, speed 6, night_start event
+  ---
+  duration_ms: 97.6733
+  type: 'test'
+  ...
+# Subtest: camera yaw rotates move; diagonal normalised
+ok 7 - camera yaw rotates move; diagonal normalised
+  ---
+  duration_ms: 174.4691
+  type: 'test'
+  ...
+# Subtest: jump: 7 m/s, gravity 20, only from the ground
+ok 8 - jump: 7 m/s, gravity 20, only from the ground
+  ---
+  duration_ms: 115.7705
+  type: 'test'
+  ...
+# Subtest: dash: 14 m/s for 12 ticks, cooldown 90 ticks from start, ignored while dashing, idle dashes along facing
+ok 9 - dash: 14 m/s for 12 ticks, cooldown 90 ticks from start, ignored while dashing, idle dashes along facing
+  ---
+  duration_ms: 202.6184
+  type: 'test'
+  ...
+# Subtest: dash keeps altitude in the air and is not invulnerable
+ok 10 - dash keeps altitude in the air and is not invulnerable
+  ---
+  duration_ms: 90.5115
+  type: 'test'
+  ...
+# Subtest: pickup: XZ <= 1.0, height diff <= 1.5, capacity 10
+ok 11 - pickup: XZ <= 1.0, height diff <= 1.5, capacity 10
+  ---
+  duration_ms: 77.4836
+  type: 'test'
+  ...
+# Subtest: dropped mote TTL: gone exactly when ttl hits 0
+ok 12 - dropped mote TTL: gone exactly when ttl hits 0
+  ---
+  duration_ms: 79.6543
+  type: 'test'
+  ...
+# Subtest: deposit: nearest unlit lantern, ties to smaller id, remembers progress, scores 10 per mote deposited
+ok 13 - deposit: nearest unlit lantern, ties to smaller id, remembers progress, scores 10 per mote deposited
+  ---
+  duration_ms: 277.4336
+  type: 'test'
+  ...
+# Subtest: win: all lit => won (even on the timeout tick); bonus = floor(s left)*2 + 50*flames; scenario lit gives no points
+ok 14 - win: all lit => won (even on the timeout tick); bonus = floor(s left)*2 + 50*flames; scenario lit gives no points
+  ---
+  duration_ms: 182.2563
+  type: 'test'
+  ...
+# Subtest: loss: dawn; no_flames when the last flame goes; score kept, no bonus
+ok 15 - loss: dawn; no_flames when the last flame goes; score kept, no bonus
+  ---
+  duration_ms: 174.7218
+  type: 'test'
+  ...
+# Subtest: a shade inside the zone of a lantern lit this tick cannot hurt the player (victory stands)
+ok 16 - a shade inside the zone of a lantern lit this tick cannot hurt the player (victory stands)
+  ---
+  duration_ms: 80.3153
+  type: 'test'
+  ...
+# Subtest: shade AI: detects at 12 m, chases at 4 m/s, gives up beyond 18 m
+ok 17 - shade AI: detects at 12 m, chases at 4 m/s, gives up beyond 18 m
+  ---
+  duration_ms: 274.7795
+  type: 'test'
+  ...
+# Subtest: shade hit: -1 flame, drop floor(carried/2) on a 1.5-2.5 ring, invuln 90, recoil 2 m / 60 ticks, one hit per tick
+ok 18 - shade hit: -1 flame, drop floor(carried/2) on a 1.5-2.5 ring, invuln 90, recoil 2 m / 60 ticks, one hit per tick
+  ---
+  duration_ms: 97.6895
+  type: 'test'
+  ...
+# Subtest: invulnerable player: shade contact does nothing (no recoil); height diff > 1.5 does not hit
+ok 19 - invulnerable player: shade contact does nothing (no recoil); height diff > 1.5 does not hit
+  ---
+  duration_ms: 164.359
+  type: 'test'
+  ...
+# Subtest: spawn schedule night 1: 2 shades at tick 300 (>=15 m away, S1,S2), then 1 every 480; spawning -> wander
+ok 20 - spawn schedule night 1: 2 shades at tick 300 (>=15 m away, S1,S2), then 1 every 480; spawning -> wander
+  ---
+  duration_ms: 185.9681
+  type: 'test'
+  ...
+# Subtest: spawn schedule: motes 20 on distinct points, +1 every 240 ticks up to 24 points, then skip
+ok 21 - spawn schedule: motes 20 on distinct points, +1 every 240 ticks up to 24 points, then skip
+  ---
+  duration_ms: 168.6466
+  type: 'test'
+  ...
+# Subtest: pulse: costs 3, centre at feet+0.8 (3D radius 5), stun 120, push 4 m in 15 ticks, +5 each, cooldown 3 s
+ok 22 - pulse: costs 3, centre at feet+0.8 (3D radius 5), stun 120, push 4 m in 15 ticks, +5 each, cooldown 3 s
+  ---
+  duration_ms: 112.711
+  type: 'test'
+  ...
+# Subtest: pulse refuses with < 3 motes; restuns (and rescores) an already stunned shade; stun lasts exactly 120 ticks
+ok 23 - pulse refuses with < 3 motes; restuns (and rescores) an already stunned shade; stun lasts exactly 120 ticks
+  ---
+  duration_ms: 175.3219
+  type: 'test'
+  ...
+# Subtest: safe zone: shades never enter 6 m of a lit lantern
+ok 24 - safe zone: shades never enter 6 m of a lit lantern
+  ---
+  duration_ms: 94.225
+  type: 'test'
+  ...
+# Subtest: lighting a lantern expels shades inside within 30 ticks, harmlessly
+ok 25 - lighting a lantern expels shades inside within 30 ticks, harmlessly
+  ---
+  duration_ms: 98.0766
+  type: 'test'
+  ...
+# Subtest: fall: -1 flame, lose motes, ignores invuln, 60 tick wait, respawn at start with invuln 90
+ok 26 - fall: -1 flame, lose motes, ignores invuln, 60 tick wait, respawn at start with invuln 90
+  ---
+  duration_ms: 102.7361
+  type: 'test'
+  ...
+# Subtest: fall with the last flame: lost no_flames at once, no respawn
+ok 27 - fall with the last flame: lost no_flames at once, no respawn
+  ---
+  duration_ms: 83.718
+  type: 'test'
+  ...
+# Subtest: night 2: bamboo bridge connects islands; off the bridge you fall; pads launch to the far island
+ok 28 - night 2: bamboo bridge connects islands; off the bridge you fall; pads launch to the far island
+  ---
+  duration_ms: 376.9927
+  type: 'test'
+  ...
+# Subtest: charm: speed 7.2 and dash without cooldown while active (600 ticks)
+ok 29 - charm: speed 7.2 and dash without cooldown while active (600 ticks)
+  ---
+  duration_ms: 97.6663
+  type: 'test'
+  ...
+# Subtest: charm respawns 2700 ticks after pickup and can be picked again
+ok 30 - charm respawns 2700 ticks after pickup and can be picked again
+  ---
+  duration_ms: 143.6498
+  type: 'test'
+  ...
+# Subtest: without the charm the second dash within 1.5 s is refused
+ok 31 - without the charm the second dash within 1.5 s is refused
+  ---
+  duration_ms: 87.5536
+  type: 'test'
+  ...
+# Subtest: drifter: idle -> chase when carrying >= 5 within 15 m; steals min(3, carried) once, ignoring invuln; flees 240 ticks then vanishes
+ok 32 - drifter: idle -> chase when carrying >= 5 within 15 m; steals min(3, carried) once, ignoring invuln; flees 240 ticks then vanishes
+  ---
+  duration_ms: 266.8039
+  type: 'test'
+  ...
+# Subtest: pulse: chase drifter flees without stealing; fleeing drifter drops its loot (dropped motes) and vanishes after 120 ticks
+ok 33 - pulse: chase drifter flees without stealing; fleeing drifter drops its loot (dropped motes) and vanishes after 120 ticks
+  ---
+  duration_ms: 198.1979
+  type: 'test'
+  ...
+# Subtest: drifter schedule: ticks 1200, 2400 (max 2, ids D1, D2), none on night 1
+ok 34 - drifter schedule: ticks 1200, 2400 (max 2, ids D1, D2), none on night 1
+  ---
+  duration_ms: 333.3377
+  type: 'test'
+  ...
+# Subtest: night 3: cliffs block, ramps climb, pad reaches tier 2
+ok 35 - night 3: cliffs block, ramps climb, pad reaches tier 2
+  ---
+  duration_ms: 479.5057
+  type: 'test'
+  ...
+# Subtest: night 3 wind: gusts every 30 s for 5 s at 2 m/s in a random direction; disabled by wind_enabled=false
+ok 36 - night 3 wind: gusts every 30 s for 5 s at 2 m/s in a random direction; disabled by wind_enabled=false
+  ---
+  duration_ms: 241.1228
+  type: 'test'
+  ...
+# Subtest: wind warning is raised 2 s before the first gust
+ok 37 - wind warning is raised 2 s before the first gust
+  ---
+  duration_ms: 12.068
+  type: 'test'
+  ...
+# Subtest: pause freezes simulation; paused/resumed events; snapshot state "paused"
+ok 38 - pause freezes simulation; paused/resumed events; snapshot state "paused"
+  ---
+  duration_ms: 94.2373
+  type: 'test'
+  ...
+# Subtest: validation: bad inputs/scenario exit 2 with a message; bad CLI exits non-zero
+ok 39 - validation: bad inputs/scenario exit 2 with a message; bad CLI exits non-zero
+  ---
+  duration_ms: 1726.6771
+  type: 'test'
+  ...
+# Subtest: stops at game end before --ticks and exits 0
+ok 40 - stops at game end before --ticks and exits 0
+  ---
+  duration_ms: 114.8281
+  type: 'test'
+  ...
+# Subtest: determinism: every night, random everything, identical bytes across runs; different seed differs
+ok 41 - determinism: every night, random everything, identical bytes across runs; different seed differs
+  ---
+  duration_ms: 1869.0693
+  type: 'test'
+  ...
+# Subtest: performance: a full night (21600 ticks) runs headless in <= 30 s
+ok 42 - performance: a full night (21600 ticks) runs headless in <= 30 s
+  ---
+  duration_ms: 1224.0575
+  type: 'test'
+  ...
+1..42
+# tests 42
+# suites 0
+# pass 42
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 10960.1593

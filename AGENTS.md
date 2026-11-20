@@ -1,23 +1,30 @@
 # AGENTS.md: Đảo Đèn Lồng
 
-Game 3D (three.js) + deterministic headless sim. Contract: `game.contract.json` (Test Contract v1.0).
+Game 3D (three.js) + deterministic headless sim. Contract: `game.contract.json` (Test Contract **v1.1**, 3 Đêm). Spec: `docs/spec/ticket-02.md`.
 
 ## Commands
-- Install: `npm install` · Play: `npm start` (http://localhost:8080) · Test: `npm test`
-- Headless: `node src/headless.js --seed 1 --night 1 --ticks 600 --out out.jsonl [--scenario f] [--inputs f]`
-- Regenerate proof: `node scripts/prove.mjs` (writes `docs/proof/phase-N/`)
+- Install: `npm install` · Play: `npm start` (http://localhost:8080) · Test: `npm test` (~10 s)
+- Headless: `node src/headless.js --seed 1 --night 1|2|3 --ticks 600 --out out.jsonl [--scenario f] [--inputs f] [--snapshot-every N]`
+- Proof: `node scripts/prove.mjs <phase>` (writes `docs/proof/phase-<phase>/`)
 
 ## Layout
-- `src/sim.js`: ALL game rules. Pure, no DOM/Node APIs. Shared by browser and CLI.
-- `src/headless.js`: CLI, validation (bad file => exit 2), JSONL writer.
-- `web/`: rendering + input only. Never put rules here.
-- `game.contract.json`: single source of truth for tuning; sim reads it, never hardcode numbers.
-- `tests/`: scenario tests through the real CLI.
+- `src/sim.js`: ALL rules. Pure (no DOM/Node). Method per tick stage S1..S11 in the order mandated by the ticket; do not reorder.
+- `src/maps.js`: standard maps + terrain (`topsAt`). `src/campaign.js`: night progression. `src/headless.js`: CLI + validation (bad file => exit 2).
+- `web/`: rendering, input, UI, audio only. Never put rules here; read state from `Game`.
+- `game.contract.json`: single source of truth for numbers. Never hardcode a tuning number in sim.
+- `tests/`: scenario tests through the real CLI (`run({night, scenario, frames, ticks, every})`).
 
 ## Rules
-- 60 ticks/s fixed; timers are integer ticks (no float accumulation). Only `rng` (seeded) for randomness; never `Math.random` in sim.
-- Distances are XZ, `<=` radius. Changing a rule => update contract, tests, `docs/notes/assumptions.md` in the same commit.
-- Extras (creative additions) must not change headless output for scenarios with `random_*: false`.
-- Do not claim done until `npm test` is green and you've read the output. Never edit proof files by hand.
-- Fix bugs in the sim and add a scenario test; do not loosen assertions.
-- Ambiguity: write the assumption in `docs/notes/assumptions.md`, do not invent PRD requirements.
+- 60 ticks/s; timers are integer ticks. Only the seeded `rng` for randomness (never `Math.random` in `src/`).
+- Distances: XZ unless the spec says 3D (pulse only) or height-diff (pickup/hit <= 1.5). Radii compare with `<=`.
+- Angle `a` => `(cos a, sin a)` on (X, Z). Shade `pos.y` = ground + 1.
+- A rule change updates contract, test, `docs/notes/assumptions.md` (and the superseded row) in the same commit.
+- Creative extras must not change headless output (disable when headless / keep in `web/`).
+- Not done until `npm test` is green AND you read which tests ran. Never edit `docs/proof/*` by hand; regenerate it.
+- Tests: assert on the specified number (from the ticket), not on what the code happens to output. Use `every: 1` when asserting a specific tick; scenario must set `random_*: false` unless testing spawns.
+- Ambiguity: write the assumption (next free A-number), never invent ticket text.
+
+## Past agent mistakes (keep out)
+- Assertion read a snapshot at tick 0 because `--snapshot-every` defaults to 10 (use `every: 1`).
+- Duplicate `tick` in an inputs frame list => exit 2; merge fields into one frame.
+- Spec-ordering slip: a lantern lit this tick makes shades inside its zone harmless (S6 before S9), so "win and die on the same tick" cannot happen.

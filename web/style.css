@@ -1,0 +1,82 @@
+/* Đảo Đèn Lồng — UI style. Palette theo Ticket-02: sky #0E1430, fog #1B2350, gold #F2C14E,
+   danger #FF5A5F, UI text #F5F1E6, lit lantern #FFB347. */
+:root {
+  --ui: #F5F1E6;
+  --gold: #F2C14E;
+  --danger: #FF5A5F;
+  --lit: #FFB347;
+  --panel: rgba(14, 20, 48, 0.92);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #0E1430; }
+body { font-family: "Segoe UI", system-ui, sans-serif; color: var(--ui); }
+canvas { display: block; }
+.hidden { display: none !important; }
+
+/* ---------- HUD ---------- */
+#hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+#hud-flames { position: absolute; top: 14px; left: 16px; display: flex; gap: 7px; }
+.flame {
+  width: 20px; height: 20px; border-radius: 50% 50% 50% 50% / 62% 62% 38% 38%;
+  background: radial-gradient(circle at 50% 78%, #FFE9B0 0%, #FFB347 55%, #b35a00 100%);
+  box-shadow: 0 0 10px rgba(255, 179, 71, 0.8);
+}
+.flame.off { background: #3a3f52; box-shadow: none; }
+#hud-top-center { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); text-align: center; }
+#hud-clock { font-size: 30px; font-weight: 700; letter-spacing: 2px; text-shadow: 0 2px 8px #000; font-variant-numeric: tabular-nums; }
+#hud-clock.danger { color: var(--danger); animation: blink 1s steps(2, start) infinite; }
+@keyframes blink { 50% { opacity: 0.25; } }
+#hud-wind { margin-top: 4px; color: #8FA3B8; font-weight: 700; font-size: 16px; text-shadow: 0 2px 6px #000; animation: blink 0.7s steps(2, start) infinite; }
+#hud-charm { margin-top: 4px; color: var(--danger); font-weight: 700; font-size: 15px; text-shadow: 0 2px 6px #000; }
+#hud-top-right { position: absolute; top: 14px; right: 18px; text-align: right; text-shadow: 0 2px 8px #000; }
+#hud-lanterns { font-size: 18px; font-weight: 600; }
+#hud-score { font-size: 24px; font-weight: 800; color: var(--gold); }
+#hud-prompt {
+  position: absolute; bottom: 118px; left: 50%; transform: translateX(-50%);
+  background: rgba(14, 20, 48, 0.85); border: 1px solid rgba(242, 193, 78, 0.5);
+  padding: 7px 16px; border-radius: 20px; font-size: 16px; font-weight: 600; white-space: nowrap;
+}
+#hud-motes { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; padding: 8px 12px; background: rgba(14, 20, 48, 0.7); border-radius: 12px; border: 1px solid rgba(242, 193, 78, 0.3); }
+.mote { width: 15px; height: 15px; border-radius: 50%; border: 1px solid rgba(242, 193, 78, 0.55); background: transparent; transition: background 0.15s; }
+.mote.filled { background: radial-gradient(circle at 40% 35%, #FFF6C2 0%, #FFE58A 70%); box-shadow: 0 0 7px rgba(255, 229, 138, 0.9); }
+#hud-cds { position: absolute; bottom: 34px; right: 18px; display: flex; gap: 12px; }
+.cd { position: relative; width: 58px; height: 58px; border-radius: 50%; border: 2px solid rgba(242, 193, 78, 0.55); background: rgba(14, 20, 48, 0.8); overflow: hidden; text-align: center; }
+.cd-fill { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(rgba(6, 8, 18, 0.72) 0%, rgba(6, 8, 18, 0) 0%); }
+.cd-label { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 10.5px; font-weight: 700; line-height: 1.05; width: 100%; text-shadow: 0 1px 3px #000; }
+.cd-state { position: absolute; bottom: -1px; left: 0; right: 0; font-size: 8px; color: var(--lit); text-shadow: 0 1px 2px #000; }
+#hud-arrow { position: fixed; left: 0; top: 0; width: 22px; height: 22px; z-index: 11; }
+.arrow-head { width: 0; height: 0; margin: 3px 0 0 3px; border-top: 8px solid transparent; border-bottom: 8px solid transparent; border-left: 16px solid var(--lit); filter: drop-shadow(0 0 5px rgba(255, 179, 71, 0.9)); }
+#hud-flash { position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgba(255, 90, 95, 0) 40%, rgba(255, 90, 95, 0.45) 100%); opacity: 0; pointer-events: none; }
+#hud-flash.show { animation: flashred 0.45s ease-out; }
+@keyframes flashred { 0% { opacity: 1; } 100% { opacity: 0; } }
+#hud-help { position: absolute; bottom: 10px; left: 14px; font-size: 12.5px; opacity: 0.7; text-shadow: 0 1px 4px #000; }
+
+/* ---------- Màn hình ---------- */
+.screen { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 20; }
+.screen.overlay { background: rgba(8, 6, 20, 0.55); z-index: 30; }
+#screen-menu, #screen-dawn { background: radial-gradient(ellipse at 50% 35%, rgba(27, 35, 80, 0.88), rgba(14, 20, 48, 0.97) 75%); }
+#screen-intro, #screen-result { background: rgba(8, 6, 20, 0.45); }
+#screen-settings { z-index: 40; }
+.panel {
+  background: var(--panel); border: 1px solid rgba(242, 193, 78, 0.4); border-radius: 16px;
+  padding: 30px 44px; text-align: center; max-width: 560px; box-shadow: 0 12px 60px rgba(0, 0, 0, 0.6), inset 0 0 40px rgba(27, 35, 80, 0.5);
+}
+.title { margin: 0 0 6px; font-size: 46px; letter-spacing: 6px; color: var(--gold); text-shadow: 0 0 24px rgba(242, 193, 78, 0.5); }
+.night-title { margin: 0 0 14px; font-size: 30px; color: var(--lit); letter-spacing: 2px; }
+.subtitle { margin: 0 0 22px; opacity: 0.85; font-size: 16px; }
+.quote { font-size: 17px; line-height: 1.6; font-style: italic; margin: 6px 0; }
+.quote-by { font-size: 13px; opacity: 0.65; margin: 0 0 18px; }
+.score-line { font-size: 19px; margin: 6px 0; }
+.score-line.gold { color: var(--gold); font-weight: 800; font-size: 23px; }
+.hint { font-size: 12.5px; opacity: 0.6; margin: 14px 0 0; }
+.btn {
+  display: block; width: 100%; margin: 10px 0 0; padding: 11px 18px; font-size: 17px; font-weight: 700;
+  color: var(--ui); background: linear-gradient(180deg, #6B4A2F, #54371f); border: 1px solid rgba(242, 193, 78, 0.55);
+  border-radius: 10px; cursor: pointer; font-family: inherit; transition: filter 0.12s, transform 0.12s;
+}
+.btn:hover { filter: brightness(1.25); transform: translateY(-1px); }
+.btn.big { font-size: 21px; padding: 13px 22px; background: linear-gradient(180deg, #8a5f38, #6B4A2F); }
+.setting-row { display: flex; align-items: center; gap: 12px; margin: 16px 0; text-align: left; }
+.setting-row label { flex: 0 0 130px; font-size: 15px; }
+.setting-row input[type="range"] { flex: 1; accent-color: var(--gold); }
+.setting-val { flex: 0 0 52px; text-align: right; color: var(--gold); font-weight: 700; font-variant-numeric: tabular-nums; }
