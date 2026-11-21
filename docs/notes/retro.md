@@ -4,7 +4,7 @@
 | | Phase 1 | Phase 2 | Phase 3 | Phase 4 |
 |---|---|---|---|---|
 | Contract | v1.0 | v1.1 | v1.2 | v1.3 |
-| Test (tự viết, `npm test`) | 16 | 42 → 43 | 59 | 70 |
+| Test (tự viết, `npm test`) | 16 | 42 → 43 | 59 | 73 |
 | Test cũ viết lại vì luật đổi | n/a | toàn bộ số Phase 1 | 7 (có lý do trong CHANGELOG) | 0 |
 | Một Đêm headless (21.600 tick) | < 0.1 s | ~0.25 s | 0.2 / 0.3 / 1.3 s | không đổi |
 | Bench (máy dev, Iris Xe) | n/a | n/a | n/a | xem `docs/proof/phase-4/bench.json` |

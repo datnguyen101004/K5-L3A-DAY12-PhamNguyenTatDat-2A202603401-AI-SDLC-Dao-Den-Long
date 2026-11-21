@@ -1,4 +1,4 @@
-machine: Windows_NT 10.0.26200 x64, 12th Gen Intel(R) Core(TM) i5-12500H, node v22.22.2
-night 1: 21600 ticks in 252 ms / 249 ms (limit 30000 ms), exit 0
-night 2: 21600 ticks in 333 ms / 332 ms (limit 30000 ms), exit 0
-night 3: 21600 ticks in 1567 ms / 1559 ms (limit 30000 ms), exit 0
+machine: Windows_NT 10.0.26300 x64, 12th Gen Intel(R) Core(TM) i5-12500H, node v22.22.2
+night 1: 21600 ticks in 274 ms / 266 ms (limit 30000 ms), exit 0
+night 2: 21600 ticks in 325 ms / 338 ms (limit 30000 ms), exit 0
+night 3: 21600 ticks in 1365 ms / 1304 ms (limit 30000 ms), exit 0

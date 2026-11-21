@@ -1,6 +1,6 @@
 # Đảo Đèn Lồng
 
-**Video demo:** _(link Release v1.0.0 / docs/demo/demo.mp4, thêm khi quay xong)_ · **Release:** [v1.0.0](https://github.com/datnguyen101004/K5-L3A-DAY12-PhamNguyenTatDat-2A202603401-AI-SDLC-Dao-Den-Long/releases/tag/v1.0.0)
+**Video demo:** không có (bài nộp này không quay video; bằng chứng thay thế nằm ở [docs/proof](docs/proof/phase-4/README.md)) · **Release:** [v1.0.0](https://github.com/datnguyen101004/K5-L3A-DAY12-PhamNguyenTatDat-2A202603401-AI-SDLC-Dao-Den-Long/releases/tag/v1.0.0)
 
 Game 3D góc nhìn thứ ba chạy trên trình duyệt. Mây, người giữ đèn nhỏ tuổi, gom đom đóm để thắp và **giữ cho các Đèn Lồng Lớn còn sáng tới bình minh** qua 3 Đêm (Đảo Bến, Đảo Cau, Đảo Chuông), trong khi Bóng Mực tìm tới những ngọn đèn yếu để hút dầu.
 
@@ -49,7 +49,7 @@ node server.js --export-leaderboard out.json     # {"entries": [...]} theo đún
 
 ## Kiểm thử, headless, benchmark, soak
 ```bash
-npm test                                                     # 70 test: luật, headless CLI, soak, bảng xếp hạng, benchmark
+npm test                                                     # 73 test: luật, headless CLI, soak, bảng xếp hạng, benchmark
 node src/headless.js --seed 1 --night 1 --ticks 600 --out out.jsonl [--scenario s.json] [--inputs i.json] [--snapshot-every 10]
 node scripts/bench.mjs --seed 42 --duration 30 --out bench.json
 node --expose-gc --lite-mode --no-expose-wasm src/soak.js --seed 7 --nights 10 --out soak.json
